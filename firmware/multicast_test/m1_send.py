@@ -2,7 +2,7 @@ import socket
 
 multicast_group = '224.1.1.1'
 port = 10000
-message = b'Hallo, Multicast!'
+message = b'Hallo, Multicast PC!'
 
 # Erstelle ein UDP Socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
