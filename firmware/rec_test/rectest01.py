@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 import glob
 from tqdm import tqdm
+import time
 
 # Constants
 VIDEO_WIDTH = 1920
@@ -28,35 +29,34 @@ def get_next_recording_filename():
 
 
 def record_video(duration=None, start_immediately=False):
-    """Records video from USB webcam with given duration or infinite until stopped."""
     cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, VIDEO_WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, VIDEO_HEIGHT)
-    cap.set(cv2.CAP_PROP_FPS, FPS)
+    if not cap.isOpened():
+        print("Error: Could not open video device.")
+        return
 
-    # Define the video codec and create VideoWriter object
-    filename = get_next_recording_filename()
-    fourcc = cv2.VideoWriter_fourcc(*CODEC)
-    out = cv2.VideoWriter(filename, fourcc, FPS, (VIDEO_WIDTH, VIDEO_HEIGHT))
+    # Set the desired FPS
+    fps = 30  # Set this to the desired FPS
+    cap.set(cv2.CAP_PROP_FPS, fps)
+
+    # Get the actual FPS
+    actual_fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f"Actual FPS: {actual_fps}")
+
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    filename = 'output.avi'
+    out = cv2.VideoWriter(filename, fourcc, actual_fps, (640, 480))
 
     recording = start_immediately
-    start_time = time.time() if start_immediately else None
-
-    if start_immediately:
-        print("Recording started automatically...")
-    else:
-        print("Press 'Space' to start/stop recording.")
-
-    if duration:
-        progress_bar = tqdm(total=duration, desc="Recording", unit="s")
+    start_time = None
 
     while True:
         ret, frame = cap.read()
         if not ret:
-            print("Failed to capture frame. Exiting...")
+            print("Error: Failed to capture image.")
             break
 
-        cv2.imshow('Recording...', frame)
+        cv2.imshow('frame', frame)
 
         key = cv2.waitKey(1)
         if key == 32:  # Space key pressed
@@ -88,7 +88,6 @@ def record_video(duration=None, start_immediately=False):
     if duration:
         progress_bar.close()
     print(f"Recording saved as {filename}")
-
 
 if __name__ == "__main__":
     # Set duration to None for infinite recording
