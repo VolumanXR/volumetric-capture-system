@@ -22,3 +22,9 @@
 [2024-11-11 01:49:06] Sent camera settings to all cameras.
 [2024-11-11 01:49:06] Camera settings updated on 192.168.179.83.
 [2024-11-11 01:49:29] Sent DELETE_SESSIONS command.
+[2024-11-11 11:30:28] Debug mode activated.
+[2024-11-11 11:30:28] Debug mode deactivated.
+[2024-11-11 11:30:33] Debug mode activated.
+[2024-11-11 11:30:34] Debug mode deactivated.
+[2024-11-11 17:22:53] Sent REC_START command.
+[2024-11-11 17:23:13] Sent REC_STOP command.

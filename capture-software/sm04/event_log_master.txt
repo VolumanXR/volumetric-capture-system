@@ -1,0 +1,16 @@
+[2024-11-11 19:18:16] Requested storage info from all cameras.
+[2024-11-11 19:18:31] Requested storage info from all cameras.
+[2024-11-11 19:18:40] Requested sessions info from all cameras.
+[2024-11-11 19:18:42] Requested sessions info from all cameras.
+[2024-11-11 19:18:43] Requested sessions info from all cameras.
+[2024-11-11 19:18:43] Requested sessions info from all cameras.
+[2024-11-11 19:21:26] Sent camera settings to all cameras.
+[2024-11-11 19:21:26] Camera settings updated on 192.168.179.83.
+[2024-11-11 19:21:47] Sent camera settings to all cameras.
+[2024-11-11 19:21:48] Camera settings updated on 192.168.179.83.
+[2024-11-11 19:22:02] Sent REC_START command with scheduled start time.
+[2024-11-11 19:22:32] Sent REC_STOP command.
+[2024-11-11 19:22:41] Requested sessions info from all cameras.
+[2024-11-11 19:22:50] Requested session Test01 from 192.168.179.83.
+[2024-11-11 19:47:08] Error receiving UDP message: invalid command name ".!debugwindow.!text"
+[2024-11-11 19:49:58] Error receiving UDP message: invalid command name ".!debugwindow6.!text"

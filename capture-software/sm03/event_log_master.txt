@@ -1,0 +1,14 @@
+[2024-11-11 17:37:34] Sent REC_STILL command.
+[2024-11-11 17:37:43] Sent REC_STILL command.
+[2024-11-11 17:38:07] Sent REC_START command with scheduled start time.
+[2024-11-11 17:38:28] Sent REC_STOP command.
+[2024-11-11 17:49:28] Sent REC_START command with scheduled start time.
+[2024-11-11 17:49:44] Requested sessions info from all cameras.
+[2024-11-11 17:49:46] Requested storage info from all cameras.
+[2024-11-11 17:49:50] Requested storage info from all cameras.
+[2024-11-11 17:49:56] Sent DELETE_SESSIONS command.
+[2024-11-11 17:50:01] Sent REC_START command with scheduled start time.
+[2024-11-11 17:50:28] Sent REC_STOP command.
+[2024-11-11 17:51:47] Sent DELETE_SESSIONS command.
+[2024-11-11 17:51:57] Sent REC_START command with scheduled start time.
+[2024-11-11 17:52:25] Sent REC_STOP command.
