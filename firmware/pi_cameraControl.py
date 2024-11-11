@@ -9,8 +9,8 @@ import hashlib
 UDP_PORT = 5005
 BROADCAST_IP = '255.255.255.255'
 UDP_IP = "0.0.0.0"  # Listen on all interfaces
-HOST_IP = "192.168.1.100"  # Replace with actual host IP address for unicast messages
-HOST_PORT = 5005
+HOST_IP = "192.168.179.9"  # Replace with actual host IP address for unicast messages
+HOST_PORT = 51628
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcast

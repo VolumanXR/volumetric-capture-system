@@ -1,0 +1,24 @@
+[2024-11-11 01:19:24] Debug mode activated.
+[2024-11-11 01:19:27] Debug mode deactivated.
+[2024-11-11 01:19:33] Debug mode activated.
+[2024-11-11 01:19:38] Debug mode deactivated.
+[2024-11-11 01:19:39] Debug mode activated.
+[2024-11-11 01:20:16] Debug mode deactivated.
+[2024-11-11 01:20:27] Debug mode activated.
+[2024-11-11 01:20:32] Requested storage info from all cameras.
+[2024-11-11 01:20:33] Requested storage info from all cameras.
+[2024-11-11 01:22:51] Sent REC_STILL command.
+[2024-11-11 01:23:16] Sent REC_STILL command.
+[2024-11-11 01:23:40] Sent REC_STILL command.
+[2024-11-11 01:23:56] Sent REC_STILL command.
+[2024-11-11 01:24:13] Sent REC_STILL command.
+[2024-11-11 01:24:42] Sent REC_START command.
+[2024-11-11 01:24:54] Sent REC_STOP command.
+[2024-11-11 01:25:27] Requested storage info from all cameras.
+[2024-11-11 01:25:30] Debug mode activated.
+[2024-11-11 01:25:32] Requested sessions info from all cameras.
+[2024-11-11 01:25:36] Requested session Test01 from 192.168.179.83.
+[2024-11-11 01:46:07] Debug mode deactivated.
+[2024-11-11 01:49:06] Sent camera settings to all cameras.
+[2024-11-11 01:49:06] Camera settings updated on 192.168.179.83.
+[2024-11-11 01:49:29] Sent DELETE_SESSIONS command.
