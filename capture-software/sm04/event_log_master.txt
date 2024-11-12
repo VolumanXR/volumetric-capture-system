@@ -14,3 +14,12 @@
 [2024-11-11 19:22:50] Requested session Test01 from 192.168.179.83.
 [2024-11-11 19:47:08] Error receiving UDP message: invalid command name ".!debugwindow.!text"
 [2024-11-11 19:49:58] Error receiving UDP message: invalid command name ".!debugwindow6.!text"
+[2024-11-12 22:24:39] Requested storage info from all cameras.
+[2024-11-12 22:24:40] Requested storage info from all cameras.
+[2024-11-12 22:24:41] Requested storage info from all cameras.
+[2024-11-12 22:24:43] Requested storage info from all cameras.
+[2024-11-12 22:24:44] Requested storage info from all cameras.
+[2024-11-12 22:24:44] Requested storage info from all cameras.
+[2024-11-12 22:24:45] Requested storage info from all cameras.
+[2024-11-12 22:24:45] Requested storage info from all cameras.
+[2024-11-12 22:24:46] Requested storage info from all cameras.
