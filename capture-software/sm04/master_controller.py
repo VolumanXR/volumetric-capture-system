@@ -293,7 +293,7 @@ class MainWindow:
                 time_since_seen = now - last_seen
                 if time_since_seen > 10:
                     # Update status to 'No Response'
-                    state = 'No Response'
+                    state = 'NO RESPONSE'
                     status['state'] = state
                     self.camera_status[ip] = status
                     self.update_status_tree(ip)
