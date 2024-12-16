@@ -7,7 +7,7 @@ import time
 import struct
 
 # Configuration
-RASPBERRY_PI_IPS = ["192.168.179.46", "192.168.179.38"]  # Add all Raspberry Pi IPs here
+RASPBERRY_PI_IPS = ["192.168.179.27"]  # Add all Raspberry Pi IPs here
 UDP_PORT = 50005
 TCP_PORT = 50006
 SESSIONS_FOLDER = "Sessions"  # Folder where sessions will be stored

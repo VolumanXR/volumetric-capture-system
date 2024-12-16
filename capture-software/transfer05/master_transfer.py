@@ -7,6 +7,8 @@ import time
 import json
 import logging
 import struct
+import sys
+import subprocess
 
 # Configure logging
 logging.basicConfig(filename='session_downloader.log', level=logging.INFO,
@@ -36,8 +38,15 @@ class SessionDownloaderApp:
         self.sessions = []
         self.session_info = {}  # session_name -> {"clip_sizes": {camera_name: size or None}}
 
+        self.current_downloading_session = None
+
         # Build GUI
         self.create_widgets()
+
+        # Immediately fetch sessions at startup
+        self.get_sessions_thread()
+        # Periodically refresh sessions (e.g., every 60 seconds)
+        self.schedule_refresh()
 
     def create_widgets(self):
         # Session Control Frame
@@ -47,21 +56,33 @@ class SessionDownloaderApp:
         self.get_sessions_button = ttk.Button(session_frame, text="Get Sessions", command=self.get_sessions)
         self.get_sessions_button.grid(row=0, column=0, padx=5, pady=5)
 
-        self.session_tree = ttk.Treeview(session_frame, columns=("Name","Clip Size","Session Size","Not found on"), show='headings')
+        self.session_tree = ttk.Treeview(session_frame, columns=("Name","Clip Size","Session Size","Not found on", "Status"), show='headings')
         self.session_tree.heading("Name", text="Name")
         self.session_tree.heading("Clip Size", text="Clip Size")
         self.session_tree.heading("Session Size", text="Session Size")
         self.session_tree.heading("Not found on", text="Not found on")
+        self.session_tree.heading("Status", text="Status")
 
         self.session_tree.column("Name", anchor="w", width=150)
         self.session_tree.column("Clip Size", anchor="e", width=100)
         self.session_tree.column("Session Size", anchor="e", width=100)
         self.session_tree.column("Not found on", anchor="w", width=200)
+        self.session_tree.column("Status", anchor="w", width=120)
 
         self.session_tree.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
 
-        self.download_button = ttk.Button(session_frame, text="Download Session", command=self.download_session)
-        self.download_button.grid(row=2, column=0, padx=5, pady=5)
+        # Buttons Frame
+        buttons_frame = ttk.Frame(session_frame)
+        buttons_frame.grid(row=2, column=0, sticky="ew", padx=5, pady=5)
+
+        self.download_button = ttk.Button(buttons_frame, text="Download Session", command=self.download_session)
+        self.download_button.grid(row=0, column=0, padx=5, pady=5)
+
+        self.delete_button = ttk.Button(buttons_frame, text="Delete Session", command=self.delete_session)
+        self.delete_button.grid(row=0, column=1, padx=5, pady=5)
+
+        self.open_folder_button = ttk.Button(buttons_frame, text="Open Local Sessions Folder", command=self.open_local_sessions_folder)
+        self.open_folder_button.grid(row=0, column=2, padx=5, pady=5)
 
         session_frame.columnconfigure(0, weight=1)
         session_frame.rowconfigure(1, weight=1)
@@ -70,8 +91,8 @@ class SessionDownloaderApp:
         progress_frame = ttk.LabelFrame(self.master, text="Progress")
         progress_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
-        # Current File Progress
-        self.current_file_label = ttk.Label(progress_frame, text="Current File:")
+        # Current Session Progress
+        self.current_file_label = ttk.Label(progress_frame, text="Current Session: N/A")
         self.current_file_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
         self.current_file_info_label = ttk.Label(progress_frame, text="IP: N/A, File: N/A")
@@ -99,6 +120,10 @@ class SessionDownloaderApp:
         self.master.columnconfigure(0, weight=1)
         self.master.rowconfigure(1, weight=1)
 
+    def schedule_refresh(self):
+        # Schedule automatic refresh every 60 seconds
+        self.master.after(60000, self.get_sessions_thread)
+
     def get_sessions(self):
         threading.Thread(target=self.get_sessions_thread, daemon=True).start()
 
@@ -124,7 +149,13 @@ class SessionDownloaderApp:
                 self.session_info[session_name]["clip_sizes"][cam['name']] = info
 
         self.update_session_tree()
-        messagebox.showinfo("Info", "Session list updated.")
+        # Show message only if triggered by button
+        # If automatic, don't show message. We can differentiate by checking if called from get_sessions button?
+        # We won't show the message if it's automatic to avoid spam.
+        # If you prefer always show message, uncomment next line.
+        # messagebox.showinfo("Info", "Session list updated.")
+        # Reschedule the refresh
+        self.schedule_refresh()
 
     def query_sessions(self, ip):
         request = {"action": "GET_SESSIONS"}
@@ -176,13 +207,55 @@ class SessionDownloaderApp:
                 not_found_cams = [cam_name for cam_name, sz in clip_sizes.items() if sz is None]
                 not_found_str = ", ".join(not_found_cams) if not_found_cams else ""
 
+                # Determine Status
+                status = self.determine_session_status(session_name, clip_sizes)
+
                 self.session_tree.insert("", "end", values=(
                     session_name,
                     f"{first_found_size} B",
                     f"{session_size} B",
-                    not_found_str
+                    not_found_str,
+                    status
                 ))
         self.master.after(0, update)
+
+    def determine_session_status(self, session_name, clip_sizes):
+        # Status determination:
+        # "remote": no local files from cameras that have this session
+        # "local": all files for cameras that have it are present
+        # "local (incomplete)": some but not all files are present
+        session_folder = os.path.join(SESSIONS_FOLDER, session_name)
+        cameras_with_clips = [(cam, sz) for cam, sz in clip_sizes.items() if sz is not None]
+
+        if not os.path.exists(session_folder):
+            # no local folder at all
+            return "remote"
+
+        # folder exists, check files
+        available_count = 0
+        expected_count = len(cameras_with_clips)
+        for cam, sz in cameras_with_clips:
+            # We know file name pattern: session_name + '_' + ip_last_octet + '.h264'
+            # We must find which camera this is to get ip last octet:
+            ip = None
+            for c in CAMERAS:
+                if c['name'] == cam:
+                    ip = c['ip']
+                    break
+            if not ip:
+                continue  # should not happen, but just skip if cam not found
+            suffix = '_' + ip.split('.')[-1]
+            file_name = f"{session_name}{suffix}.h264"
+            file_path = os.path.join(session_folder, file_name)
+            if os.path.exists(file_path) and os.path.getsize(file_path) == sz:
+                available_count += 1
+
+        if available_count == 0:
+            return "remote"
+        elif available_count < expected_count:
+            return "local (incomplete)"
+        else:
+            return "local"
 
     def download_session(self):
         selection = self.session_tree.selection()
@@ -195,11 +268,16 @@ class SessionDownloaderApp:
         threading.Thread(target=self.download_session_thread, args=(session_name,), daemon=True).start()
 
     def download_session_thread(self, session_name):
+        self.current_downloading_session = session_name
+        self.update_current_session_label()
+
         clip_sizes = self.session_info[session_name]["clip_sizes"]
         cameras_with_session = [(c['name'], c['ip'], sz) for c in CAMERAS if (sz := clip_sizes[c['name']]) is not None]
 
         if not cameras_with_session:
             messagebox.showerror("Error", f"No Raspberry Pis have the session '{session_name}'.")
+            self.current_downloading_session = None
+            self.update_current_session_label()
             return
 
         session_folder = os.path.join(SESSIONS_FOLDER, session_name)
@@ -225,7 +303,6 @@ class SessionDownloaderApp:
                         raise Exception("Failed to read JSON length from server.")
                     (msg_length,) = struct.unpack('!Q', length_data)
 
-                    # Now read exactly msg_length bytes for the JSON response
                     json_data = self.recvall(sock, msg_length)
                     if len(json_data) < msg_length:
                         raise Exception("Incomplete JSON response from server.")
@@ -269,8 +346,47 @@ class SessionDownloaderApp:
         self.update_overall_progress(100, overall_start_time, total_bytes, total_bytes)
         messagebox.showinfo("Success", f"Session '{session_name}' downloaded successfully from all available Raspberry Pis.")
 
+        self.current_downloading_session = None
+        self.update_current_session_label()
+        # Refresh the tree to update status
+        self.update_session_tree()
+
+    def delete_session(self):
+        selection = self.session_tree.selection()
+        if not selection:
+            messagebox.showwarning("Warning", "No session selected.")
+            return
+        session_item = selection[0]
+        session_values = self.session_tree.item(session_item, "values")
+        session_name = session_values[0]
+
+        confirm = messagebox.askyesno("Delete Session", f"Are you sure you want to delete the session '{session_name}' locally?")
+        if confirm:
+            session_folder = os.path.join(SESSIONS_FOLDER, session_name)
+            if os.path.exists(session_folder):
+                # Delete folder and contents
+                for root, dirs, files in os.walk(session_folder, topdown=False):
+                    for file in files:
+                        os.remove(os.path.join(root, file))
+                    for d in dirs:
+                        os.rmdir(os.path.join(root, d))
+                os.rmdir(session_folder)
+                messagebox.showinfo("Info", f"Session '{session_name}' deleted.")
+            else:
+                messagebox.showinfo("Info", f"Session '{session_name}' not found locally.")
+            self.update_session_tree()
+
+    def open_local_sessions_folder(self):
+        # Open the local sessions folder in the file explorer
+        if os.name == 'nt':  # Windows
+            os.startfile(SESSIONS_FOLDER)
+        elif sys.platform == 'darwin':  # macOS
+            subprocess.Popen(["open", SESSIONS_FOLDER])
+        else:  # Linux, etc.
+            subprocess.Popen(["xdg-open", SESSIONS_FOLDER])
+
     def recvall(self, sock, n):
-        """Receive exactly n bytes, or fewer if EOF is encountered."""
+        """Receive exactly n bytes or fewer if EOF is encountered."""
         data = b''
         while len(data) < n:
             packet = sock.recv(n - len(data))
@@ -282,6 +398,14 @@ class SessionDownloaderApp:
     def update_current_file_info(self, ip, file_name):
         def update():
             self.current_file_info_label.config(text=f"IP: {ip}, File: {file_name}")
+        self.master.after(0, update)
+
+    def update_current_session_label(self):
+        def update():
+            if self.current_downloading_session:
+                self.current_file_label.config(text=f"Current Session: {self.current_downloading_session}")
+            else:
+                self.current_file_label.config(text="Current Session: N/A")
         self.master.after(0, update)
 
     def update_current_progress(self, bytes_received, file_size, start_time):
