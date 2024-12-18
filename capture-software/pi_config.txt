@@ -19,3 +19,8 @@ python3 remote_camera_controller.py
 python3 remote_sm.py
 
 python3 remote_transfer.py
+
+
+sudo apt install python3-zmq
+
+sudo apt install python3-netifaces
