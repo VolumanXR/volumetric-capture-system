@@ -2,16 +2,16 @@ import csv
 import os
 import shutil
 
-CSV_FILE = "ip_config.csv"  # Path to your CSV file
-SD_BOOT = "/mnt/sdcard/boot"  # Adjust to your mount path
-SD_ROOT = "/mnt/sdcard/root"  # Adjust to your mount path
+CSV_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ip_config.csv')  # Path to your CSV file
+SD_BOOT = "E:\\"  # Adjust to your mount path
+SD_ROOT = "H:\\"  # Adjust to your mount path
 
 def configure_sd_card(ip, hostname):
     # Configure hostname
-    with open(os.path.join(SD_ROOT, "etc/hostname"), "w") as f:
+    with open(os.path.join(SD_ROOT, "etc\\hostname"), "w") as f:
         f.write(hostname + "\n")
     
-    with open(os.path.join(SD_ROOT, "etc/hosts"), "w") as f:
+    with open(os.path.join(SD_ROOT, "etc\\hosts"), "w") as f:
         f.write("127.0.0.1 localhost\n")
         f.write(f"127.0.1.1 {hostname}\n")
     
@@ -21,8 +21,8 @@ def configure_sd_card(ip, hostname):
         f.write(f"""
 interface wlan0
 static ip_address={ip}/24
-static routers=192.168.1.1
-static domain_name_servers=192.168.1.1
+static routers=10.50.100.1
+static domain_name_servers=10.50.100.1
 """)
 
 def main():
