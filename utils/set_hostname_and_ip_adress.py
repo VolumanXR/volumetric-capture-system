@@ -4,7 +4,7 @@ import shutil
 
 CSV_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ip_config.csv')  # Path to your CSV file
 SD_BOOT = "E:\\"  # Adjust to your mount path
-SD_ROOT = "H:\\"  # Adjust to your mount path
+SD_ROOT = "H:\\"  # Adjust to your mount path, to open linux partitions on windows use: https://www.paragon-software.com/home/linuxfs-windows/#buy
 
 def configure_sd_card(ip, hostname):
     # Configure hostname
@@ -32,6 +32,7 @@ def main():
             ip, hostname = row
             print(f"Configuring SD card for {hostname} ({ip})...")
             configure_sd_card(ip, hostname)
+            print(f"{hostname} done...")
             input("Swap SD cards and press Enter to continue...")
 
 if __name__ == "__main__":
