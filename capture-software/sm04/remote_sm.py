@@ -13,7 +13,7 @@ from picamera2.outputs import FileOutput
 import netifaces
 
 # Configuration
-MASTER_PC_IP = '192.168.179.9'  # This should be configurable
+MASTER_PC_IP = '10.50.100.20'  # This should be configurable
 MASTER_PC_PORT = 50000
 LISTEN_PORT = 50005  # Port to listen for UDP messages
 STATUS_INTERVAL = 5  # Interval to send status messages

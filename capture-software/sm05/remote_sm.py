@@ -13,7 +13,7 @@ from picamera2.outputs import FileOutput
 
 EVENT_LOG = 'event_log.txt'
 STORAGE_PATH = 'Recordings'
-MASTER_PC_IP = '192.168.179.9'  # Set the master PC IP here
+MASTER_PC_IP = '10.50.100.20'  # Set the master PC IP here
 MASTER_PC_PORT = 50005
 
 # State machine states

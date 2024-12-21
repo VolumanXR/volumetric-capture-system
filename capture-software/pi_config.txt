@@ -24,3 +24,5 @@ python3 remote_transfer.py
 sudo apt install python3-zmq
 
 sudo apt install python3-netifaces
+
+sudo apt install -y python3-pip python3-picamera2 libcamera-apps libcamera-dev python3-libcamera libcamera-tools python3-flask python3-opencv python3-psutil python3-numpy python3-netifaces openssh-client python3-zmq

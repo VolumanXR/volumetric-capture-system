@@ -11,7 +11,7 @@ import hashlib
 # Configuration
 LISTEN_PORT = 50000
 BROADCAST_PORT = 50005
-BROADCAST_IP = '192.168.179.255'  # Assuming this is the broadcast IP for the network
+BROADCAST_IP = '10.50.100.255'  # Assuming this is the broadcast IP for the network
 CAMERA_LIST_FILE = 'camera_list.json'
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
