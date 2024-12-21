@@ -1,4 +1,4 @@
-# master_controller.py
+# master_controller.py v5
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -10,8 +10,10 @@ import zmq
 import uuid
 import statistics
 
+
+
 # Configuration
-CAMERA_LIST_FILE = 'camera_list.json'
+CAMERA_LIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'camera_list.json') 
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
 MASTER_PC_IP = '0.0.0.0'  # Bind to all interfaces

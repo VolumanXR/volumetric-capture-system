@@ -1,4 +1,4 @@
-# master_camera_controller.py (Updated Layout)
+# master_camera_controller.py (Updated Layout) v7
 
 import sys
 import json
@@ -16,8 +16,8 @@ import time
 import logging
 
 # Configuration
-CAMERA_LIST_FILE = 'camera_list.json'
-MASTER_SETTINGS_FILE = 'camera_settings.json'
+CAMERA_LIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'camera_list.json')
+MASTER_SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'camera_settings.json')
 
 # Default settings
 default_settings = {

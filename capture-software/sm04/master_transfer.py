@@ -1,4 +1,3 @@
-# master_transfer.py v5
 import tkinter as tk
 from tkinter import ttk, messagebox
 import socket
@@ -16,7 +15,7 @@ logging.basicConfig(filename='session_downloader.log', level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
 # Load camera list
-CAMERA_LIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'camera_list.json')
+CAMERA_LIST_FILE = "camera_list.json"
 if not os.path.exists(CAMERA_LIST_FILE):
     raise FileNotFoundError(f"{CAMERA_LIST_FILE} not found.")
 
