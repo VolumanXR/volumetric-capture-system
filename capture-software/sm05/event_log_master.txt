@@ -33,3 +33,9 @@
 [2024-12-18 02:16:46] Camera registered: 192.168.179.52
 [2024-12-18 02:16:47] Camera registered: 192.168.179.49
 [2024-12-18 02:17:18] Sent REC_STILL command with offset compensation.
+[2025-01-06 00:30:37] Camera registered: 192.168.179.41
+[2025-01-06 00:30:40] Camera registered: 192.168.179.52
+[2025-01-06 00:46:44] Calculating offsets...
+[2025-01-06 00:46:45] Sent REC_START command with offset compensation.
+[2025-01-06 00:50:29] Calculating offsets...
+[2025-01-06 00:50:30] Sent REC_START command with offset compensation.
