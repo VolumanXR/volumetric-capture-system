@@ -9,11 +9,14 @@ import hashlib
 import zmq
 import uuid
 import statistics
+from pathlib import Path
 
 
 
 # Configuration
-CAMERA_LIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'camera_list.json') 
+# Directory setup
+SCRIPT_DIR = Path(__file__).resolve().parent
+CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent,  'utils','camera_list.json')  
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
 MASTER_PC_IP = '0.0.0.0'  # Bind to all interfaces

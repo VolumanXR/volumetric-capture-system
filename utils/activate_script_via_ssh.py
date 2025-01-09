@@ -6,7 +6,7 @@ from pathlib import Path
 
 # Directory setup
 SCRIPT_DIR = Path(__file__).resolve().parent
-CAMERA_LIST = os.path.join(SCRIPT_DIR.parent, 'capture-software', 'sm05','camera_list.json')  # Adjusts to a sister directory
+CAMERA_LIST = os.path.join(SCRIPT_DIR,'camera_list.json')  # Adjusts to a sister directory
 
 # Replace with your actual username and password
 USERNAME = "voluman"

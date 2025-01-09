@@ -1,4 +1,4 @@
-# remote_sm.py
+# remote_sm.py v7
 import os
 import time
 import json
