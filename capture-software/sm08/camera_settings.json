@@ -1,0 +1,17 @@
+{
+    "width": 1920,
+    "height": 1080,
+    "frame_rate": 25,
+    "shutter_angle": 180,
+    "iso": 2145,
+    "brightness": 0,
+    "contrast": 100,
+    "saturation": 100,
+    "sharpness": 100,
+    "auto_exposure": false,
+    "flicker_control": "Off",
+    "flicker_period": 50,
+    "white_balance": "Auto",
+    "red_gain": 1.1,
+    "blue_gain": 2.5
+}

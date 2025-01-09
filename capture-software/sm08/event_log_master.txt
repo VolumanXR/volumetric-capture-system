@@ -1,0 +1,5 @@
+[2025-01-09 13:13:58] Camera registered: 192.168.179.41
+[2025-01-09 13:14:33] Camera registered: 192.168.179.52
+[2025-01-09 13:14:42] Scheduling recording at 13:14:50
+[2025-01-09 13:15:04] Sent REC_STOP command.
+[2025-01-09 13:15:12] Scheduling still capture at 13:15:20
