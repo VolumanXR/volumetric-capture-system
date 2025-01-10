@@ -1,3 +1,5 @@
+# remote_sm.py v8.1
+
 import os
 import time
 import json
@@ -170,9 +172,12 @@ def recording_starter(session_name, bitrate, start_time):
     }
     send_message(ack_msg)
 
-    wait_time = start_time - time.time()
-    if wait_time > 0:
-        time.sleep(wait_time)
+    # wait_time = start_time - time.time()
+    # if wait_time > 0:
+    #    time.sleep(wait_time)
+    
+    while time.time() < start_time:
+        time.sleep(0.015)
 
     # Actual start of recording
     ip_suffix = my_ip.split('.')[-1]
