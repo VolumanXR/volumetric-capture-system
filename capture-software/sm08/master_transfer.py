@@ -11,16 +11,18 @@ import sys
 import subprocess
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed  # (CHANGED) for concurrency
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(filename='session_downloader.log', level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
 # ===== (CHANGED) Choose how many files can be downloaded simultaneously =====
-MAX_CONCURRENT_DOWNLOADS = 3
+MAX_CONCURRENT_DOWNLOADS = 10
 
 # Load camera list
-CAMERA_LIST_FILE = "camera_list.json"
+SCRIPT_DIR = Path(__file__).resolve().parent
+CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent,  'utils','camera_list.json') 
 if not os.path.exists(CAMERA_LIST_FILE):
     raise FileNotFoundError(f"{CAMERA_LIST_FILE} not found.")
 

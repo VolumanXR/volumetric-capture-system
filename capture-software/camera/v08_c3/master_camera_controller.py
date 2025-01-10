@@ -14,9 +14,13 @@ import threading
 import queue
 import time
 import logging
+from pathlib import Path
+
 
 # Configuration
 CAMERA_LIST_FILE = 'camera_list.json'
+#SCRIPT_DIR = Path(__file__).resolve().parent
+#CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent.parent,  'utils','camera_list.json') 
 MASTER_SETTINGS_FILE = 'camera_settings.json'
 
 # Default settings
