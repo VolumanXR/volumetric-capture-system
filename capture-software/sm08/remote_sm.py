@@ -1,4 +1,4 @@
-# remote_sm.py v8.1
+# remote_sm.py v8.2
 
 import os
 import time
@@ -176,9 +176,7 @@ def recording_starter(session_name, bitrate, start_time):
     # if wait_time > 0:
     #    time.sleep(wait_time)
     
-    while time.time() < start_time:
-        time.sleep(0.015)
-
+    
     # Actual start of recording
     ip_suffix = my_ip.split('.')[-1]
     recording_file = os.path.join(STORAGE_PATH, f'{session_name}_{ip_suffix}.h264')
@@ -193,6 +191,10 @@ def recording_starter(session_name, bitrate, start_time):
 
     # We can set a new encoder
     local_encoder = H264Encoder(int(bitrate) * 1000)
+
+    while time.time() < start_time:
+        time.sleep(0.015)
+
     picam2.start_recording(local_encoder, recording_file)
     
     state = RECORDING
