@@ -32,7 +32,6 @@ def ssh_execute_command(hostname, username, password, command):
         print(f"Output:\n{stdout.read().decode()}")
         print(f"Error:\n{stderr.read().decode()}")
 
-        # Close the SSH connection
         client.close()
 
     except Exception as e:
@@ -93,6 +92,8 @@ def main(action=None, update_filepath=None):
     elif action == "t":
         script_to_stop = REMOTE_SM_SCRIPT
         script_to_start = REMOTE_TRANSFER_SCRIPT
+    elif action == "b":
+        pass
     else:
         print("Invalid action specified!")
         return
@@ -102,7 +103,10 @@ def main(action=None, update_filepath=None):
         hostname = host.get("name")
         ip_address = host.get("ip")
         if hostname and ip_address:
-            if update_filepath:
+            if action == "b":
+                command = f"sudo reboot"
+                ssh_execute_command(ip_address, USERNAME, PASSWORD, command)
+            elif update_filepath:
                 stop_script(ip_address, USERNAME, PASSWORD, remote_script_name)
                 replace_script(ip_address, USERNAME, PASSWORD, update_filepath, remote_script_name)
             else:
@@ -118,14 +122,34 @@ if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Manage remote Python scripts.")
     parser.add_argument(
+        "-r",
+        action="store_true",
+        help="Stop remote_transfer.py and start remote_sm.py",
+    )
+    parser.add_argument(
+        "-t",
+        action="store_true",
+        help="Stop remote_sm.py and start remote_transfer.py",
+        )
+    parser.add_argument(
         "-u",
         metavar="FILE",
         help="Specify a local file to upload to all remote hosts",
     )
+    parser.add_argument(
+        "-b",
+        action="store_true",
+        help="Reboot system",
+    )
     args = parser.parse_args()
-
-    if args.u:
+    if args.r:
+        main("r")
+    elif args.t:
+        main("t")
+    elif args.u:
         # If -u is specified, only update scripts
         main(update_filepath=args.u)
+    elif args.b:
+        main("b")
     else:
         print("Please specify an action with -u.")
