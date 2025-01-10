@@ -8,13 +8,17 @@ import hashlib
 import zmq
 import uuid
 import statistics
+from pathlib import Path
 
 # Configuration
-CAMERA_LIST_FILE = 'camera_list.json'
+SCRIPT_DIR = Path(__file__).resolve().parent
+CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent,  'utils','camera_tmp.json') 
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
 MASTER_PC_IP = '0.0.0.0'  # Bind to all interfaces
 MASTER_PC_PORT = 50005
+
+LASTIME = None
 
 NO_RESPONSE_TIMEOUT = 2.0  # If no status in 2 seconds, show "NO RESPONSE"
 
@@ -172,16 +176,18 @@ class MainWindow:
     def periodic_status_check(self):
         """Periodically checks each camera's 'last_seen' time. If older than
         NO_RESPONSE_TIMEOUT seconds, set state to 'NO RESPONSE'."""
-        while self.running:
-            current_time = time.time()
-            for ip, status in self.camera_status.items():
-                last_seen = status.get('last_seen', 0)
-                if (current_time - last_seen) > NO_RESPONSE_TIMEOUT:
-                    # Overwrite only if we don't already have "NO RESPONSE"
-                    if status['state'] != 'NO RESPONSE':
-                        self.camera_status[ip]['state'] = 'NO RESPONSE'
-                        self.update_status_tree(ip)
-            time.sleep(1)
+        if time.time() - LASTIME > 1:
+            while self.running:
+                current_time = time.time()
+                for ip, status in self.camera_status.items():
+                    last_seen = status.get('last_seen', 0)
+                    if (current_time - last_seen) > NO_RESPONSE_TIMEOUT:
+                        # Overwrite only if we don't already have "NO RESPONSE"
+                        if status['state'] != 'NO RESPONSE':
+                            self.camera_status[ip]['state'] = 'NO RESPONSE'
+                            self.update_status_tree(ip)
+            LASTIME = time.time()
+            s
 
     def receive_loop(self):
         while self.running:
@@ -429,6 +435,7 @@ class MainWindow:
         self.root.destroy()
 
 if __name__ == '__main__':
+    LASTIME = time.time()
     root = tk.Tk()
     app = MainWindow(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
