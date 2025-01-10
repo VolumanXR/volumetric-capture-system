@@ -1,4 +1,4 @@
-# master_pc_gui.py
+# master_pc_gui.py v3
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import socket
@@ -8,12 +8,14 @@ import json
 import os
 import hashlib
 import netifaces
+from pathlib import Path
 
 # Configuration
 LISTEN_PORT = 50000
 BROADCAST_PORT = 50005
 BROADCAST_IP = '192.168.179.255'
-CAMERA_LIST_FILE = 'camera_list.json'
+SCRIPT_DIR = Path(__file__).resolve().parent
+CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent,  'utils','camera_list.json') 
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
 
@@ -191,7 +193,7 @@ def download_sessions():
     # Send transmit commands to each camera one by one
     for camera in cameras:
         ip = camera['ip']
-        port = camera['port']
+        port = BROADCAST_PORT
         if session_name in camera_status.get(ip, {}).get('sessions', []):
             message = {
                 'task': 'TRANSMIT_SESSION',
