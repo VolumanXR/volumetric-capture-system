@@ -17,11 +17,11 @@ def update_hosts_file(ip, username, password, hostname):
         ssh.connect(ip, username=username, password=password)
 
         # Backup /etc/hosts
-        backup_cmd = 'sudo cp /etc/hosts /etc/hosts.bak'
-        ssh.exec_command(backup_cmd)
+        # backup_cmd = 'sudo cp /etc/hosts /etc/hosts.bak'
+        # ssh.exec_command(backup_cmd)
 
         # Prepare the new hosts content
-        update_cmd = f"sudo sed -i 's/^127.0.1.1.*/127.0.1.1 {hostname}/' /etc/hosts"
+        update_cmd = f"sudo sed -i 's/^makestep.*/makestep 0.02 3/' /etc/chrony/chrony.conf"
         ssh.exec_command(update_cmd)
 
         print(f"Updated /etc/hosts on {hostname} ({ip}) successfully.")
