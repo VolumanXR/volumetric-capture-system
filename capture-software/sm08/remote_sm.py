@@ -1,4 +1,4 @@
-# remote_sm.py v8.2
+# remote_sm.py v8.3
 
 import os
 import time
@@ -160,6 +160,15 @@ def recording_starter(session_name, bitrate, start_time):
     """
     At start_time, begin recording with the specified settings.
     """
+    # Force synch with NTP server
+    try:
+        # Running the 'sudo chronyc makestep' command
+        result = subprocess.run(['sudo', 'chronyc', 'makestep'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(result.stdout.decode())  # Print the standard output of the command
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred: {e}")
+        print(f"stderr: {e.stderr.decode()}")  # Print the standard error output if any
+
     global state, recording_file
     state = PREPARING
     log_event("Preparing to start recording.")
