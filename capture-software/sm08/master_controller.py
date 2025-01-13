@@ -1,3 +1,4 @@
+# master_controller.py v8
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -9,16 +10,18 @@ import zmq
 import uuid
 import statistics
 from pathlib import Path
+import paramiko
+from datetime import datetime
 
 # Configuration
 SCRIPT_DIR = Path(__file__).resolve().parent
-CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent,  'utils','camera_tmp.json') 
+CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent,  'utils','camera_list.json') 
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
 MASTER_PC_IP = '0.0.0.0'  # Bind to all interfaces
 MASTER_PC_PORT = 50005
 
-LASTIME = None
+LASTIME = time.time()
 
 NO_RESPONSE_TIMEOUT = 2.0  # If no status in 2 seconds, show "NO RESPONSE"
 
@@ -27,6 +30,7 @@ class DebugWindow(tk.Toplevel):
         super().__init__(master)
         self.title('VolumanXR - Debug Window')
         self.create_widgets()
+        update_dist_time()
 
     def create_widgets(self):
         self.text = tk.Text(self)
@@ -176,6 +180,7 @@ class MainWindow:
     def periodic_status_check(self):
         """Periodically checks each camera's 'last_seen' time. If older than
         NO_RESPONSE_TIMEOUT seconds, set state to 'NO RESPONSE'."""
+        global LASTIME
         if time.time() - LASTIME > 1:
             while self.running:
                 current_time = time.time()
@@ -187,7 +192,6 @@ class MainWindow:
                             self.camera_status[ip]['state'] = 'NO RESPONSE'
                             self.update_status_tree(ip)
             LASTIME = time.time()
-            s
 
     def receive_loop(self):
         while self.running:
@@ -434,8 +438,45 @@ class MainWindow:
         self.running = False
         self.root.destroy()
 
+def update_dist_time():
+    try:
+        # Get the current system time
+        current_time = datetime.now().strftime("%d %b %Y %H:%M:%S")
+        
+        # SSH connection setup
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # Automatically add host keys
+        
+        # Connect to the remote host
+        client.connect('10.50.100.5', username='voluman', password='xr')
+        
+        # Prepare the command to set the time
+        command = f'sudo date -s "{current_time}"'
+        
+        # Execute the command to set the time
+        stdin, stdout, stderr = client.exec_command(command)
+        
+        # Handling sudo prompt for password
+        stdin.write(password + '\n')
+        stdin.flush()
+        
+        # Get output and errors (if any)
+        output = stdout.read().decode('utf-8')
+        errors = stderr.read().decode('utf-8')
+
+        # Print the output and errors (if any)
+        if output:
+            print("Output:", output)
+        if errors:
+            print("Errors:", errors)
+        
+        # Close the SSH connection
+        client.close()
+        
+    except Exception as e:
+        print(f"Error occurred: {e}")
+
 if __name__ == '__main__':
-    LASTIME = time.time()
     root = tk.Tk()
     app = MainWindow(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
