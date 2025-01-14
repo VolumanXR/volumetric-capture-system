@@ -1,4 +1,4 @@
-# remote_sm.py v8.3
+# remote_sm.py v8.4
 
 import os
 import time
@@ -156,11 +156,8 @@ def send_status():
     }
     send_message(msg)
 
-def recording_starter(session_name, bitrate, start_time):
-    """
-    At start_time, begin recording with the specified settings.
-    """
-    # Force synch with NTP server
+def sync_with_ntp():
+        # Force synch with NTP server
     try:
         # Running the 'sudo chronyc makestep' command
         result = subprocess.run(['sudo', 'chronyc', 'makestep'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -168,6 +165,12 @@ def recording_starter(session_name, bitrate, start_time):
     except subprocess.CalledProcessError as e:
         print(f"Error occurred: {e}")
         print(f"stderr: {e.stderr.decode()}")  # Print the standard error output if any
+
+def recording_starter(session_name, bitrate, start_time):
+    """
+    At start_time, begin recording with the specified settings.
+    """
+    sync_with_ntp()
 
     global state, recording_file
     state = PREPARING
@@ -299,12 +302,24 @@ def status_update_loop():
         send_status()
         time.sleep(1)
 
+def sync_with_ntp_loop():
+    """
+    Periodically sync with NTP server.
+    """
+    while True:
+        if state == STANDBY:
+            sync_with_ntp()
+        time.sleep(60*5)
+
 # Start threads
 msg_thread = threading.Thread(target=handle_messages, daemon=True)
 msg_thread.start()
 
 status_thread = threading.Thread(target=status_update_loop, daemon=True)
 status_thread.start()
+
+ntp_thread = threading.Thread(target=sync_with_ntp_loop, daemon=True)
+ntp_thread.start()
 
 try:
     while True:
