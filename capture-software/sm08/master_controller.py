@@ -456,9 +456,9 @@ def update_dist_time():
         # Execute the command to set the time
         stdin, stdout, stderr = client.exec_command(command)
         
-        # Handling sudo prompt for password
-        stdin.write(password + '\n')
-        stdin.flush()
+        # # Handling sudo prompt for password
+        # stdin.write(password + '\n')
+        # stdin.flush()
         
         # Get output and errors (if any)
         output = stdout.read().decode('utf-8')
