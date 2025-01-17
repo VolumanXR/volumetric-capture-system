@@ -1,4 +1,4 @@
-# remote_sm.py v8.4
+# remote_sm.py v8.5
 
 import os
 import time
@@ -8,6 +8,8 @@ import subprocess
 import threading
 import zmq
 import uuid
+import sys
+import signal
 
 from picamera2 import Picamera2, Preview
 from picamera2.encoders import H264Encoder
@@ -311,6 +313,28 @@ def sync_with_ntp_loop():
             sync_with_ntp()
         time.sleep(60*5)
 
+# Function to log events
+def log_event(message):
+    print(message)  # Replace with your actual logging mechanism
+
+# Function to handle SIGINT
+def sigint_handler(signum, frame):
+    log_event("SIGINT received. Shutting down gracefully.")
+    # Perform cleanup here
+    cleanup_and_exit()
+
+# Cleanup function
+def cleanup_and_exit():
+    log_event("Stopping threads and cleaning up resources...")
+    # If you have any specific cleanup logic, add it here.
+    # Threads with `daemon=True` will exit automatically when the main program exits.
+    picam2.close()
+    log_event("Shutdown complete.")
+    sys.exit(0)
+
+# Register SIGINT handler
+signal.signal(signal.SIGINT, sigint_handler)
+
 # Start threads
 msg_thread = threading.Thread(target=handle_messages, daemon=True)
 msg_thread.start()
@@ -318,11 +342,13 @@ msg_thread.start()
 status_thread = threading.Thread(target=status_update_loop, daemon=True)
 status_thread.start()
 
-ntp_thread = threading.Thread(target=sync_with_ntp_loop, daemon=True)
-ntp_thread.start()
+# ntp_thread = threading.Thread(target=sync_with_ntp_loop, daemon=True)
+# ntp_thread.start()
 
 try:
+    log_event("Program started. Press Ctrl+C to exit.")
     while True:
         time.sleep(1)
 except KeyboardInterrupt:
-    log_event('Shutting down.')
+    log_event('KeyboardInterrupt detected. Shutting down.')
+    cleanup_and_exit()
