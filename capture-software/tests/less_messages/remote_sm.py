@@ -1,4 +1,4 @@
-# remote_sm.py v8.5
+# remote_sm.py v8.6 - Less messages version
 
 import os
 import time

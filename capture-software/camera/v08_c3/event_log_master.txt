@@ -1,9 +1,0 @@
-[2024-12-17 00:06:17] Sent REC_START command with scheduled start time.
-[2024-12-17 00:07:12] Sent REC_STOP command.
-[2024-12-17 00:07:36] Sent REC_START command with scheduled start time.
-[2024-12-17 00:08:19] Sent REC_STOP command.
-[2024-12-17 00:08:39] Sent REC_STOP command.
-[2024-12-17 00:09:05] Sent REC_START command with scheduled start time.
-[2024-12-17 00:09:37] Sent REC_STOP command.
-[2024-12-17 00:09:53] Sent REC_START command with scheduled start time.
-[2024-12-17 00:10:23] Sent REC_STOP command.

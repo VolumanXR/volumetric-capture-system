@@ -27,7 +27,7 @@ from kivy.core.window import Window
 
 # Configuration
 SCRIPT_DIR = Path(__file__).resolve().parent
-CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent.parent,  'utils','camera_tmp.json') 
+CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent.parent,  'utils','camera_list.json') 
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
 MASTER_PC_IP = '0.0.0.0'  # Bind to all interfaces
