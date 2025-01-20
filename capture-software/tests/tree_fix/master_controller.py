@@ -15,7 +15,7 @@ from datetime import datetime
 
 # Configuration
 SCRIPT_DIR = Path(__file__).resolve().parent
-CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent.parent,  'utils','camera_list.json') 
+CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent.parent,  'utils','camera_list.json')
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
 MASTER_PC_IP = '0.0.0.0'  # Bind to all interfaces
@@ -43,16 +43,16 @@ class DebugWindow(tk.Toplevel):
     def create_widgets(self):
         self.text = tk.Text(self)
         self.text.pack(fill='both', expand=True)
-        
+
         control_frame = ttk.Frame(self)
         control_frame.pack(fill='x', padx=5, pady=5)
 
         clear_messages_button = ttk.Button(control_frame, text='Clear Messages', command=self.clear_messages)
         clear_messages_button.grid(row=0, column=0, padx=5, pady=5)
-        
+
         pause_messages_button = ttk.Button(control_frame, text='Pause Messages', command=self.pause_messages)
         pause_messages_button.grid(row=0, column=1, padx=5, pady=5)
-        
+
         resume_messages_button = ttk.Button(control_frame, text='Resume Messages', command=self.resume_messages)
         resume_messages_button.grid(row=0, column=2, padx=5, pady=5)
 
@@ -61,8 +61,9 @@ class DebugWindow(tk.Toplevel):
         self.text.config(state='normal')
         self.text.insert('end', f'{who}: {message}\n')
         self.text.see('end')
-        
+
     def clear_messages(self):
+        self.text.config(state='normal')
         self.text.delete('1.0', 'end')
         
     def pause_messages(self):
@@ -118,8 +119,8 @@ class MainWindow:
         # Periodic check for "NO RESPONSE"
         self.status_check_thread = threading.Thread(target=self.periodic_status_check, daemon=True)
         self.status_check_thread.start()
-        
-        
+
+
 
     def load_camera_list(self):
         with open(CAMERA_LIST_FILE, 'r') as f:
@@ -211,18 +212,23 @@ class MainWindow:
             LASTIME = time.time()
 
     def receive_loop(self):
+        lasttime2 = time.perf_counter()
         while self.running:
-            socks = dict(self.poller.poll(1000))
+            socks = dict(self.poller.poll(500))
             if self.router_socket in socks and socks[self.router_socket] == zmq.POLLIN:
                 frames = self.router_socket.recv_multipart()
                 identity = frames[0]
                 message = json.loads(frames[1].decode())
                 self.handle_message(identity, message)
+            if time.perf_counter() - lasttime2 > 1:
+                self.update_status_tree_all()
+                lasttime2 = time.perf_counter()
+
 
     def handle_message(self, identity, message):
         task = message.get('task')
         ip = message.get('ip', 'Unknown')
-        
+
         # Always log full incoming messages so they show in the debug window:
         self.log_event(f"Incoming message from {ip}: {message}")
 
@@ -237,7 +243,7 @@ class MainWindow:
                 'storage_remaining_mb': 'N/A',
                 'sessions': []
             }
-            self.update_status_tree(ip)
+            #self.update_status_tree(ip)
             self.log_event(f'Camera registered: {ip}')
 
         elif task == 'STATUS':
@@ -251,7 +257,7 @@ class MainWindow:
                 'storage_remaining_mb': storage_remaining,
                 'sessions': sessions
             })
-            self.update_status_tree(ip)
+            #self.update_status_tree(ip)
 
         elif task == 'FILE_TRANSFER_COMPLETE':
             # For completeness; same as before
@@ -282,7 +288,7 @@ class MainWindow:
                 self.camera_status[ip]['state'] = 'PREPARING'
             else:
                 self.camera_status[ip]['state'] = 'SYNC ISSUE'
-            self.update_status_tree(ip)
+            #self.update_status_tree(ip)
 
         # The Pi acknowledges the still capture time
         elif task == 'REC_STILL_ACK':
@@ -292,7 +298,7 @@ class MainWindow:
                 self.camera_status[ip]['state'] = 'PREPARING_STILL'
             else:
                 self.camera_status[ip]['state'] = 'SYNC ISSUE'
-            self.update_status_tree(ip)
+            #self.update_status_tree(ip)
 
         # Keep track of last_seen
         if ip in self.camera_status:
@@ -323,6 +329,13 @@ class MainWindow:
                 break
         if not found:
             self.status_tree.insert('', 'end', values=(name, ip, state, last_seen_str, storage, sessions))
+
+    def update_status_tree_all(self):
+        for ip in self.camera_status:
+            self.update_status_tree(ip)
+
+    def update_status_tree_loop(self):
+        self.root.after(500, self.update_status_tree_all)
 
     def send_message(self, ip, message_dict):
         """Send a ZMQ message to the camera with the given IP."""
@@ -359,8 +372,8 @@ class MainWindow:
             next_5 -= 60
             # compute the base time at the top of the next minute
             base_minute = time.mktime((
-                local_now.tm_year, 
-                local_now.tm_mon, 
+                local_now.tm_year,
+                local_now.tm_mon,
                 local_now.tm_mday,
                 local_now.tm_hour,
                 local_now.tm_min + 1,
@@ -373,8 +386,8 @@ class MainWindow:
         else:
             # remain in same minute
             base_minute = time.mktime((
-                local_now.tm_year, 
-                local_now.tm_mon, 
+                local_now.tm_year,
+                local_now.tm_mon,
                 local_now.tm_mday,
                 local_now.tm_hour,
                 local_now.tm_min,
@@ -392,8 +405,8 @@ class MainWindow:
             if next_5 >= 60:
                 next_5 -= 60
                 base_minute = time.mktime((
-                    local_now.tm_year, 
-                    local_now.tm_mon, 
+                    local_now.tm_year,
+                    local_now.tm_mon,
                     local_now.tm_mday,
                     local_now.tm_hour,
                     local_now.tm_min + 1,
@@ -439,7 +452,7 @@ class MainWindow:
         if not session_name:
             messagebox.showerror('Error', 'Please enter a session name for the still.')
             return
-        
+
         capture_time = self.get_next_multiple_of_5_sec(min_gap=5)
         self.log_event(f"Scheduling still capture at {time.strftime('%H:%M:%S', time.localtime(capture_time))}")
 
@@ -462,24 +475,24 @@ def update_dist_time():
     try:
         # Get the current system time
         current_time = datetime.now().strftime("%d %b %Y %H:%M:%S")
-        
+
         # SSH connection setup
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # Automatically add host keys
-        
+
         # Connect to the remote host
         client.connect('10.50.100.5', username='voluman', password='xr')
-        
+
         # Prepare the command to set the time
         command = f'sudo date -s "{current_time}"'
-        
+
         # Execute the command to set the time
         stdin, stdout, stderr = client.exec_command(command)
-        
+
         # # Handling sudo prompt for password
         # stdin.write(password + '\n')
         # stdin.flush()
-        
+
         # Get output and errors (if any)
         output = stdout.read().decode('utf-8')
         errors = stderr.read().decode('utf-8')
@@ -489,10 +502,10 @@ def update_dist_time():
             print("Output:", output)
         if errors:
             print("Errors:", errors)
-        
+
         # Close the SSH connection
         client.close()
-        
+
     except Exception as e:
         print(f"Error occurred: {e}")
 
@@ -500,4 +513,5 @@ if __name__ == '__main__':
     root = tk.Tk()
     app = MainWindow(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
+    #app.update_status_tree_all()
     root.mainloop()
