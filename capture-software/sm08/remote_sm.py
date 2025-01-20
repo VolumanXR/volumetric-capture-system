@@ -1,4 +1,4 @@
-# remote_sm.py v8.5
+# remote_sm.py v8.6
 
 import os
 import time
@@ -118,12 +118,34 @@ def get_storage_remaining():
     return int(remaining)
 
 def get_session_list():
-    sessions = set()
-    for filename in os.listdir(STORAGE_PATH):
-        if filename.endswith(('.h264', '.mp4', '.jpg', '.jpeg', '.png')):
-            session = filename.split('_')[0]
-            sessions.add(session)
-    return list(sessions)
+    
+    # sessions = set()
+    # for filename in os.listdir(STORAGE_PATH):
+    #     if filename.endswith(('.h264', '.mp4', '.jpg', '.jpeg', '.png')):
+    #         session = filename.split('_')[0]
+    #         sessions.add(session)
+    # return list(sessions)
+    
+    files = [
+        f for f in os.listdir(STORAGE_PATH)
+        if f.endswith(('.h264', '.jpg'))
+    ]
+    files_with_mtime = [
+        (f, os.path.getmtime(os.path.join(STORAGE_PATH, f)))
+        for f in files
+    ]
+    sorted_files = sorted(files_with_mtime, key=lambda x: x[1], reverse=True)
+    latest_files = []
+    for f, _ in sorted_files[:3]:
+        base = f.split('_')[0]
+        if f.endswith('.jpg'):
+            base = f"[I] {base}"
+        elif f.endswith('.h264'):
+            base = f"[V] {base}"
+        latest_files.append(base)
+    if len(sorted_files) > 3:
+        latest_files.append("...")
+    return latest_files
 
 def calculate_checksum(file_path):
     hash_md5 = hashlib.md5()
