@@ -26,23 +26,18 @@ LASTIME = time.time()
 NO_RESPONSE_TIMEOUT = 2.0  # If no status in 2 seconds, show "NO RESPONSE"
 
 class DebugWindow(tk.Toplevel):
-    def __init__(self, master, main_app):
+    def __init__(self, master, on_close_callback=None):
         super().__init__(master)
         self.title('VolumanXR - Debug Window')
-
-        # Keep a reference to the MainWindow
-        self.main_app = main_app
-
-        # Ensure we handle the close event
-        self.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.on_close_callback = on_close_callback  # Store the callback
 
         self.create_widgets()
-        update_dist_time()  # If you still want to call this in DebugWindow
+        # Override the window's "X" close to ensure we can also do cleanup:
+        self.protocol("WM_DELETE_WINDOW", self._handle_close)
 
-    def on_close(self):
-        # When the debug window is closed, also turn off debug mode
-        self.main_app.debug_window = None
-        self.main_app.debug_mode = False
+    def _handle_close(self):
+        if self.on_close_callback:
+            self.on_close_callback()
         self.destroy()
 
     def create_widgets(self):
@@ -62,18 +57,20 @@ class DebugWindow(tk.Toplevel):
         resume_messages_button.grid(row=0, column=2, padx=5, pady=5)
 
     def insert_message(self, who, message):
+        # If not paused, allow normal insertion
         self.text.config(state='normal')
         self.text.insert('end', f'{who}: {message}\n')
         self.text.see('end')
-
+        
     def clear_messages(self):
         self.text.delete('1.0', 'end')
-
+        
     def pause_messages(self):
         self.text.config(state='disabled')
-
+        
     def resume_messages(self):
         self.text.config(state='normal')
+
 
 class MainWindow:
     def __init__(self, root):
@@ -180,8 +177,13 @@ class MainWindow:
             self.debug_window = None
             self.debug_mode = False
         else:
-            self.debug_window = DebugWindow(self.root, self)
+            self.debug_window = DebugWindow(self.root, on_close_callback=self._debug_window_closed)
             self.debug_mode = True
+
+    def _debug_window_closed(self):
+        """Called when the DebugWindow is closed with the X button."""
+        self.debug_window = None
+        self.debug_mode = False
 
     def log_event(self, message):
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -218,6 +220,9 @@ class MainWindow:
     def handle_message(self, identity, message):
         task = message.get('task')
         ip = message.get('ip', 'Unknown')
+        
+        # Always log full incoming messages so they show in the debug window:
+        self.log_event(f"Incoming message from {ip}: {message}")
 
         # Register camera identity -> IP
         if task == 'REGISTER':
