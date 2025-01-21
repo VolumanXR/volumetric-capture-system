@@ -1,4 +1,4 @@
-# master_controller.py v10
+# master_controller.py v10.1
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -30,6 +30,9 @@ class DebugWindow(tk.Toplevel):
         super().__init__(master)
         self.title('VolumanXR - Debug Window')
         self.on_close_callback = on_close_callback  # Store the callback
+        self.geometry('1790x300')
+        self.geometry('+0+700')
+        
 
         self.create_widgets()
         # Override the window's "X" close to ensure we can also do cleanup:
@@ -79,6 +82,7 @@ class MainWindow:
         self.root.title('VolumanXR - Camera Control UI')
         self.debug_window = None
         self.debug_mode = False
+        update_dist_time()
 
         self.cameras = []         # Loaded from camera_list.json
         self.camera_status = {}   # ip -> { 'state', 'last_seen', 'storage_remaining_mb', 'sessions', ... }

@@ -30,7 +30,7 @@ class DebugWindow(tk.Toplevel):
         super().__init__(master)
         self.title('VolumanXR - Debug Window')
         self.create_widgets()
-        update_dist_time()
+        
 
     def create_widgets(self):
         self.text = tk.Text(self)
@@ -68,6 +68,7 @@ class MainWindow:
         self.root.title('VolumanXR - Camera Control UI')
         self.debug_window = None
         self.debug_mode = False
+        update_dist_time()
 
         self.cameras = []         # Loaded from camera_list.json
         self.camera_status = {}   # ip -> { 'state', 'last_seen', 'storage_remaining_mb', 'sessions', ... }

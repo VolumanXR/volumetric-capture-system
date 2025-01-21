@@ -1,4 +1,4 @@
-# remote_sm.py v10
+# remote_sm.py v10.1
 
 import os
 import time
@@ -10,6 +10,7 @@ import zmq
 import uuid
 import sys
 import signal
+import datetime
 
 from picamera2 import Picamera2, Preview
 from picamera2.encoders import H264Encoder
@@ -53,6 +54,7 @@ TRANSMITTING = 'TRANSMITTING'  # Not used here, but left for completeness
 state = STANDBY
 session_name = ''
 recording_file = ''
+timecode = '00:00:00:00'
 
 if not os.path.exists(STORAGE_PATH):
     os.makedirs(STORAGE_PATH)
@@ -190,6 +192,17 @@ def sync_with_ntp():
         print(f"Error occurred: {e}")
         print(f"stderr: {e.stderr.decode()}")  # Print the standard error output if any
 
+def get_current_timecode(framerate, timecode_start_time):
+    """
+    Returns the current system time formatted as a timecode string.
+    Format: HH:MM:SS:FF where FF is the frame number within the current second.
+    """
+    now = datetime.datetime.now()
+    frame_fraction = now.microsecond / 1_000_000  # Fraction of the current second
+    ff = round(frame_fraction * framerate)
+    timecode = now.strftime(f"%H:%M:%S:{ff:02d}")
+    return timecode
+
 def recording_starter(session_name, bitrate, start_time):
     """
     At start_time, begin recording with the specified settings.
@@ -219,6 +232,7 @@ def recording_starter(session_name, bitrate, start_time):
     picam2.stop()
     width = default_settings['width']
     height = default_settings['height']
+    fps = default_settings['frame_rate']
     video_config = picam2.create_video_configuration(main={"size": (width, height)})
     picam2.configure(video_config)
 
@@ -228,18 +242,54 @@ def recording_starter(session_name, bitrate, start_time):
     # We can set a new encoder
     local_encoder = H264Encoder(int(bitrate) * 1000)
 
-    while time.time() < start_time:
-        time.sleep(0.015)
-
+    # while time.time() < start_time:
+    #     time.sleep(0.015)
+    time.sleep(start_time - time.time())
+    
+    start = time.perf_counter()
     picam2.start_recording(local_encoder, recording_file)
+    offset = time.perf_counter() - (start / 2)
+    timecode_start_time = datetime.datetime.now()
+    timecode_start_time = timecode_start_time - datetime.timedelta(seconds=offset)
     
     state = RECORDING
     log_event(f'Recording started: {recording_file}')
+    global timecode
+    timecode = get_current_timecode(fps, timecode_start_time)
+
+def ffmpeg_processing():
+    global timecode, recording_file
+    recording_file_name = os.path.splitext(recording_file)[0]
+    recording_file_name = recording_file_name + '.mp4'
+    
+        # Define the FFmpeg command
+    ffmpeg_cmd = [
+        'ffmpeg',
+        '-y',  # Overwrite output file if it exists
+        '-f', 'h264',  # Input format
+        '-i', recording_file,  # Input from stdin
+        '-c', 'copy',  # Copy codec (no re-encoding)
+        '-timecode', timecode,  # Set starting timecode
+        recording_file_name  # Output file
+    ]
+    
+    # Run the FFmpeg command
+    try:
+        result = subprocess.run(ffmpeg_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        log_event(f'FFmpeg processing complete: {recording_file_name}')
+        # Delete the original .h264 file
+        os.remove(recording_file)
+    except subprocess.CalledProcessError as e:
+        log_event(f'Error processing with FFmpeg: {e}')
+        log_event(f'stderr: {e.stderr.decode()}')
+        
+        
 
 def stop_recording_func():
     """
     Stop the recording if we are in RECORDING state.
     """
+    
     global state
     if state == RECORDING:
         picam2.stop_recording()
@@ -247,6 +297,13 @@ def stop_recording_func():
         configure_camera()
         state = STANDBY
         log_event('Recording stopped.')
+    
+        # Add FFmpeg processing
+        try:
+            ffmpeg_processing()
+            log_event(f'FFmpeg processing complete: {recording_file}')
+        except Exception as e:
+            log_event(f'Error processing with FFmpeg: {e}')
 
 def still_starter(session_name, start_time):
     """
@@ -333,7 +390,7 @@ def sync_with_ntp_loop():
     while True:
         if state == STANDBY:
             sync_with_ntp()
-        time.sleep(60*5)
+        time.sleep(60*10)
 
 # Function to log events
 def log_event(message):
