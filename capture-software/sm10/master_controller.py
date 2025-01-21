@@ -1,4 +1,4 @@
-# master_controller.py v10.1
+# master_controller.py v10.2
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -144,7 +144,7 @@ class MainWindow:
 
         ttk.Label(session_frame, text='Bitrate (Kbps):').grid(row=1, column=0, padx=5, pady=5)
         self.bitrate_entry = ttk.Entry(session_frame)
-        self.bitrate_entry.insert(0, '15000')
+        self.bitrate_entry.insert(0, '15')
         self.bitrate_entry.grid(row=1, column=1, padx=5, pady=5)
 
         start_button = ttk.Button(session_frame, text='Start Recording', command=self.start_recording)

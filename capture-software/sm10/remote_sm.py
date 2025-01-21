@@ -1,4 +1,4 @@
-# remote_sm.py v10.1
+# remote_sm.py v10.3
 
 import os
 import time
@@ -60,22 +60,23 @@ if not os.path.exists(STORAGE_PATH):
     os.makedirs(STORAGE_PATH)
 
 default_settings = {
-    'width': 1920,
-    'height': 1080,
-    'frame_rate': 25,
-    # Additional exposure/ISO settings omitted for brevity, or set to defaults:
-    'shutter_angle': 180,
-    'iso': 100,
-    'brightness': 0,
-    'contrast': 100,
-    'saturation': 100,
-    'sharpness': 100,
-    'auto_exposure': True,
-    'flicker_control': 'Off',
-    'flicker_period': 50,
-    'white_balance': 'Auto',
-    'red_gain': 1.1,
-    'blue_gain': 2.5
+    "width": 1920,
+    "height": 1080,
+    "frame_rate": 25,
+    "shutter_angle": 20,
+    "iso": 864,
+    "brightness": 0,
+    "contrast": 100,
+    "saturation": 95,
+    "sharpness": 129,
+    "auto_exposure": False,
+    "flicker_control": "Off",
+    "flicker_period": 50,
+    "white_balance": "Auto",
+    "red_gain": 1.1,
+    "blue_gain": 2.5,
+    "af_mode": "manual",
+    "lens_position": 0.58
 }
 if os.path.exists(CAMERA_SETTINGS_FILE):
     with open(CAMERA_SETTINGS_FILE, 'r') as f:
@@ -91,21 +92,71 @@ picam2 = Picamera2()
 encoder = None
 
 def apply_settings(settings):
-    """
-    Simple example that sets some controls. 
-    You can expand it as needed to handle manual exposure, white balance, etc.
-    """
-    controls = {
-        "FrameRate": float(settings.get('frame_rate', 25))
-    }
+    controls = {}
+    frame_rate = float(settings.get('frame_rate', 25))
+    controls["FrameRate"] = frame_rate
+    shutter_angle = float(settings.get('shutter_angle', 180))
+    base_exposure_time = (shutter_angle / 360.0) * (1.0 / frame_rate) * 1_000_000
+    iso_value = float(settings.get('iso', 100))
+
+    controls["Brightness"] = float(settings.get('brightness', 0))/100.0
+    controls["Contrast"] = float(settings.get('contrast', 100))/100.0
+    controls["Saturation"] = float(settings.get('saturation', 100))/100.0
+    controls["Sharpness"] = float(settings.get('sharpness', 100))/100.0
+
+    flicker_selection = settings.get('flicker_control', 'Off')
+    if flicker_selection == 'Off':
+        controls["AeEnable"] = settings.get('auto_exposure', True)
+        if not settings.get('auto_exposure', True):
+            controls["ExposureTime"] = int(base_exposure_time)
+            controls["AnalogueGain"] = iso_value / 100.0
+    else:
+        controls["AeEnable"] = False
+        if flicker_selection == '50Hz':
+            exposure_time = int(20000)
+        elif flicker_selection == '60Hz':
+            exposure_time = int(16667)
+        elif flicker_selection == 'Manual':
+            flicker_period = float(settings.get('flicker_period', 50))
+            exposure_time = int((1.0/flicker_period)*1_000_000)
+        else:
+            exposure_time = int(base_exposure_time)
+        controls["ExposureTime"] = exposure_time
+        controls["AnalogueGain"] = iso_value / 100.0
+
+    wb_selection = settings.get('white_balance', 'Auto')
+    if wb_selection == 'Auto':
+        controls["AwbEnable"] = True
+    else:
+        controls["AwbEnable"] = False
+        if wb_selection == 'Manual':
+            red_gain = float(settings.get('red_gain', 1.0))
+            blue_gain = float(settings.get('blue_gain', 1.0))
+            controls["ColourGains"] = (red_gain, blue_gain)
+        else:
+            if wb_selection == '3200K':
+                controls["ColourGains"] = (2.3, 1.3)
+            elif wb_selection == '4400K':
+                controls["ColourGains"] = (1.8, 1.5)
+            elif wb_selection == '5600K':
+                controls["ColourGains"] = (1.5, 1.8)
+    
+    if settings.get('af_mode', 'manual') == 'auto':
+        controls["AfMode"] = 2
+    else:
+        controls["AfMode"] = 0
+    controls["LensPosition"] = settings.get('lens_position', 0.58)
+
     try:
         picam2.set_controls(controls)
     except Exception as e:
         log_event(f"Error applying settings: {e}")
 
 def configure_camera():
+    
     width = default_settings['width']
     height = default_settings['height']
+    
     video_config = picam2.create_video_configuration(main={"size": (width, height)})
     picam2.configure(video_config)
     picam2.start()
@@ -204,6 +255,7 @@ def get_current_timecode(framerate, timecode_start_time):
     return timecode
 
 def recording_starter(session_name, bitrate, start_time):
+    controls = {}
     """
     At start_time, begin recording with the specified settings.
     """
@@ -230,17 +282,19 @@ def recording_starter(session_name, bitrate, start_time):
     ip_suffix = my_ip.split('.')[-1]
     recording_file = os.path.join(STORAGE_PATH, f'{session_name}_{ip_suffix}.h264')
     picam2.stop()
-    width = default_settings['width']
-    height = default_settings['height']
+    
+    ### Doppelt 
+    # width = default_settings['width']
+    # height = default_settings['height']
     fps = default_settings['frame_rate']
-    video_config = picam2.create_video_configuration(main={"size": (width, height)})
-    picam2.configure(video_config)
+    # video_config = picam2.create_video_configuration(main={"size": (width, height)})
+    # picam2.configure(video_config)
 
-    # picam2.start()
-    apply_settings(default_settings)
+    # # picam2.start()
+    # apply_settings(default_settings)
 
     # We can set a new encoder
-    local_encoder = H264Encoder(int(bitrate) * 1000)
+    local_encoder = H264Encoder(int(bitrate) * 1000000)
 
     # while time.time() < start_time:
     #     time.sleep(0.015)
