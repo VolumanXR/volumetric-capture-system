@@ -130,7 +130,7 @@ def get_session_list():
     
     files = [
         f for f in os.listdir(STORAGE_PATH)
-        if f.endswith(('.h264', '.jpg'))
+        if f.endswith(('.mp4', '.jpg'))
     ]
     files_with_mtime = [
         (f, os.path.getmtime(os.path.join(STORAGE_PATH, f)))
@@ -142,7 +142,7 @@ def get_session_list():
         base = f.split('_')[0]
         if f.endswith('.jpg'):
             base = f"[I] {base}"
-        elif f.endswith('.h264'):
+        elif f.endswith('.mp4'):
             base = f"[V] {base}"
         latest_files.append(base)
     if len(sorted_files) > 3:
@@ -236,7 +236,7 @@ def recording_starter(session_name, bitrate, start_time):
     video_config = picam2.create_video_configuration(main={"size": (width, height)})
     picam2.configure(video_config)
 
-    picam2.start()
+    # picam2.start()
     apply_settings(default_settings)
 
     # We can set a new encoder
@@ -244,13 +244,16 @@ def recording_starter(session_name, bitrate, start_time):
 
     # while time.time() < start_time:
     #     time.sleep(0.015)
+    
+    picam2.start_encoder(local_encoder, recording_file)
+    
     time.sleep(start_time - time.time())
     
     start = time.perf_counter()
-    picam2.start_recording(local_encoder, recording_file)
+    picam2.start()
     offset = time.perf_counter() - (start / 2)
     timecode_start_time = datetime.datetime.now()
-    timecode_start_time = timecode_start_time - datetime.timedelta(seconds=offset)
+    # timecode_start_time = timecode_start_time - datetime.timedelta(seconds=offset)
     
     state = RECORDING
     log_event(f'Recording started: {recording_file}')
