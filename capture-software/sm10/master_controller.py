@@ -1,4 +1,4 @@
-# master_controller.py v10.2
+# master_controller.py v10.3
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -12,14 +12,18 @@ import statistics
 from pathlib import Path
 import paramiko
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 # Configuration
+USERNAME = "voluman"
+PASSWORD = "xr"
 SCRIPT_DIR = Path(__file__).resolve().parent
 CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent,  'utils','camera_list.json')
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
 MASTER_PC_IP = '0.0.0.0'  # Bind to all interfaces
 MASTER_PC_PORT = 50005
+SCRIPTNAME = 'remote_sm.py'
 
 LASTIME = time.time()
 
@@ -82,11 +86,12 @@ class MainWindow:
         self.root.title('VolumanXR - Camera Control UI')
         self.debug_window = None
         self.debug_mode = False
-        update_dist_time()
+        self.start_up()
+        
 
         self.cameras = []         # Loaded from camera_list.json
         self.camera_status = {}   # ip -> { 'state', 'last_seen', 'storage_remaining_mb', 'sessions', ... }
-        self.load_camera_list()
+        self.cameras = load_camera_list(CAMERA_LIST_FILE)
 
         if not os.path.exists(SESSIONS_DIR):
             os.makedirs(SESSIONS_DIR)
@@ -120,19 +125,12 @@ class MainWindow:
         self.receive_thread = threading.Thread(target=self.receive_loop, daemon=True)
         self.receive_thread.start()
 
-        # Periodic check for "NO RESPONSE"
-        self.status_check_thread = threading.Thread(target=self.periodic_status_check, daemon=True)
-        self.status_check_thread.start()
+        # # Periodic check for "NO RESPONSE"
+        # self.status_check_thread = threading.Thread(target=self.periodic_status_check, daemon=True)
+        # self.status_check_thread.start()
 
-
-
-    def load_camera_list(self):
-        with open(CAMERA_LIST_FILE, 'r') as f:
-            self.cameras = json.load(f)
-            # Remove 'port' usage if present
-            for c in self.cameras:
-                if 'port' in c:
-                    del c['port']
+        self.update_status_tree_loop()
+        self.status_check_loop()
 
     def create_widgets(self):
         session_frame = ttk.LabelFrame(self.root, text='Session Control')
@@ -202,18 +200,18 @@ class MainWindow:
     def periodic_status_check(self):
         """Periodically checks each camera's 'last_seen' time. If older than
         NO_RESPONSE_TIMEOUT seconds, set state to 'NO RESPONSE'."""
-        global LASTIME
-        if time.time() - LASTIME > 1:
-            while self.running:
-                current_time = time.time()
-                for ip, status in self.camera_status.items():
-                    last_seen = status.get('last_seen', 0)
-                    if (current_time - last_seen) > NO_RESPONSE_TIMEOUT:
-                        # Overwrite only if we don't already have "NO RESPONSE"
-                        if status['state'] != 'NO RESPONSE':
-                            self.camera_status[ip]['state'] = 'NO RESPONSE'
-                            self.update_status_tree(ip)
-            LASTIME = time.time()
+        current_time = time.time()
+        for ip, status in self.camera_status.items():
+            last_seen = status.get('last_seen', 0)
+            if (current_time - last_seen) > NO_RESPONSE_TIMEOUT:
+                # Overwrite only if we don't already have "NO RESPONSE"
+                if status['state'] != 'NO RESPONSE':
+                    self.camera_status[ip]['state'] = 'NO RESPONSE'
+
+    def status_check_loop(self):
+        self.periodic_status_check()
+        self.root.after(2000, self.status_check_loop)  # Non-blocking update
+
 
     def receive_loop(self):
         lasttime2 = time.perf_counter()
@@ -224,9 +222,7 @@ class MainWindow:
                 identity = frames[0]
                 message = json.loads(frames[1].decode())
                 self.handle_message(identity, message)
-            if time.perf_counter() - lasttime2 > 1:
-                self.update_status_tree_all()
-                lasttime2 = time.perf_counter()
+
 
 
     def handle_message(self, identity, message):
@@ -339,7 +335,8 @@ class MainWindow:
             self.update_status_tree(ip)
 
     def update_status_tree_loop(self):
-        self.root.after(500, self.update_status_tree_all)
+        self.update_status_tree_all()
+        self.root.after(100, self.update_status_tree_loop) #Non-blocking update
 
     def send_message(self, ip, message_dict):
         """Send a ZMQ message to the camera with the given IP."""
@@ -471,9 +468,17 @@ class MainWindow:
             }
             self.send_message(ip, msg)
 
+    def start_up(self):
+        update_dist_time()
+        start_remote_hosts()
+
     def on_close(self):
+        stop_remote_hosts()
         self.running = False
         self.root.destroy()
+    
+
+
 
 def update_dist_time():
     try:
@@ -512,6 +517,100 @@ def update_dist_time():
 
     except Exception as e:
         print(f"Error occurred: {e}")
+
+def start_remote_hosts():
+    # Load the camera list
+    cameras = load_camera_list(CAMERA_LIST_FILE)
+
+    # Start the script on each camera
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        for cam in cameras:
+            host_ip = cam["ip"]
+            executor.submit(start_script, host_ip)
+
+def stop_remote_hosts():
+    # Load the camera list
+    cameras = load_camera_list(CAMERA_LIST_FILE)
+
+    # Start the script on each camera
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        for cam in cameras:
+            host_ip = cam["ip"]
+            executor.submit(stop_script, host_ip)
+
+def load_camera_list(json_path):
+    """
+    Load the list of Raspberry Pis (camera IPs) from the specified JSON file.
+    Expects format like:
+    [
+        {"name": "CAM00", "ip": "10.50.100.100"},
+        {"name": "CAM01", "ip": "10.50.100.101"},
+        ...
+    ]
+    """
+    with open(json_path, 'r') as f:
+        return json.load(f)
+
+def ssh_command(ssh_client, command):
+    """
+    Executes a command over SSH and returns (stdout, stderr) as strings.
+    """
+    stdin, stdout, stderr = ssh_client.exec_command(command)
+    out = stdout.read().decode('utf-8')
+    err = stderr.read().decode('utf-8')
+    return out, err
+
+def connect_ssh(host):
+    """
+    Creates an SSH connection to the specified host. Returns the SSHClient object.
+    """
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname=host, username=USERNAME, password=PASSWORD, timeout=5)
+    return ssh
+
+def start_script(host):
+
+    """
+    Start the script on the Pi in the background (nohup).
+    """
+    ssh = None
+    try:
+        ssh = connect_ssh(host)
+        cmd = (
+            f"nohup python3 /home/voluman/{SCRIPTNAME} "
+            f"> /home/voluman/{SCRIPTNAME}.log 2>&1 &"
+        )
+        _, err = ssh_command(ssh, cmd)
+        if err:
+            print(f"[{host}] Error starting {SCRIPTNAME}: {err}")
+        else:
+            print(f"[{host}] Started {SCRIPTNAME}.")
+    except Exception as e:
+        print(f"[{host}] Failed to start {SCRIPTNAME}: {e}")
+    finally:
+        if ssh:
+            ssh.close()
+
+def stop_script(host):
+    """
+    Stop (kill) the given script on the Pi by process name.
+    """
+    ssh = None
+    try:
+        ssh = connect_ssh(host)
+        cmd = f"pkill -f {SCRIPTNAME}"
+        _, err = ssh_command(ssh, cmd)
+        # pkill doesn't necessarily return anything on stderr unless there's a problem
+        if err:
+            print(f"[{host}] Possible error stopping {SCRIPTNAME}: {err}")
+        else:
+            print(f"[{host}] Stopped {SCRIPTNAME}.")
+    except Exception as e:
+        print(f"[{host}] Failed to stop {SCRIPTNAME}: {e}")
+    finally:
+        if ssh:
+            ssh.close()
 
 if __name__ == '__main__':
     root = tk.Tk()
