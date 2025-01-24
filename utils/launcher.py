@@ -4,13 +4,15 @@ import os
 import sys
 import json
 import paramiko
+from pathlib import Path
 
 # ----------------------------------------------------
 # Configuration
 # ----------------------------------------------------
 USERNAME = "voluman"
 PASSWORD = "xr"
-CAMERA_LIST_JSON = "camera_list.json"  # Path to your camera_list.json file
+SCRIPT_DIR = Path(__file__).resolve().parent
+CAMERA_LIST_JSON = os.path.join(SCRIPT_DIR, 'camera_list.json') 
 
 # ----------------------------------------------------
 # Optional: only import tkinter if needed
