@@ -1,4 +1,4 @@
-# remote_sm.py v10.3
+# remote_sm.py v10.4
 
 import os
 import time
@@ -366,6 +366,9 @@ def still_starter(session_name, start_time):
     """
     At start_time, capture a single still image (JPEG).
     """
+    # Force sync with NTP server
+    sync_with_ntp()
+    
     global state
     state = PREPARING_STILL
     log_event("Preparing to capture still.")
@@ -467,6 +470,9 @@ def cleanup_and_exit():
     picam2.close()
     log_event("Shutdown complete.")
     sys.exit(0)
+
+# update ntp time at start
+sync_with_ntp()
 
 # Register SIGINT handler
 signal.signal(signal.SIGINT, sigint_handler)
