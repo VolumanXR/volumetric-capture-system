@@ -5,6 +5,7 @@ import sys
 import json
 import paramiko
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 # ----------------------------------------------------
 # Configuration
@@ -210,17 +211,18 @@ def main():
         sys.exit(1)
 
     # Iterate over all cameras
-    for cam in camera_list:
-        host_ip = cam["ip"]
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        for cam in camera_list:
+            host_ip = cam["ip"]
 
-        if command == "start":
-            start_script(host_ip, script_arg)
-        elif command == "stop":
-            stop_script(host_ip, script_arg)
-        elif command == "reboot":
-            reboot_pi(host_ip)
-        elif command == "upload":
-            upload_script(host_ip, script_arg)
+            if command == "start":
+                executor.submit(start_script, host_ip, script_arg)
+            elif command == "stop":
+                executor.submit(stop_script, host_ip, script_arg)
+            elif command == "reboot":
+                executor.submit(reboot_pi, host_ip)
+            elif command == "upload":
+                executor.submit(upload_script, host_ip, script_arg)
 
 if __name__ == "__main__":
     main()
