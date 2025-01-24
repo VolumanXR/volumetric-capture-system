@@ -215,7 +215,7 @@ class SessionDownloaderApp:
                     not_found_str,
                     status
                 ))
-        self.master.after(0, update)
+        self.master.after(100, update)
 
     def determine_session_status(self, session_name, clip_sizes):
         session_folder = os.path.join(SESSIONS_FOLDER, session_name)
@@ -490,7 +490,7 @@ class SessionDownloaderApp:
         def update_ui():
             self.overall_progress['value'] = percentage
             self.overall_eta_label.config(text=f"ETA: {eta_str}")
-        self.master.after(0, update_ui)
+        self.master.after(100, update_ui)
 
     def format_eta(self, eta_seconds):
         if eta_seconds == float('inf') or eta_seconds < 0:
