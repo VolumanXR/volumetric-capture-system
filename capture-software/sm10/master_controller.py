@@ -637,9 +637,20 @@ def start_remote_hosts():
 def show_stopping_alert():
     alert = tk.Toplevel()
     alert.title("Stopping Scripts")  # Fenstertitel setzen
-    alert.geometry("300x60+600+300")  # Größe und Position des Fensters
 
-    label = tk.Label(alert, text="Stopping Scripts on all Cameras...", font=("Arial", 12))
+    window_width = 300
+    window_height = 60
+
+    # Bildschirmgröße ermitteln
+    screen_width = alert.winfo_screenwidth()
+    screen_height = alert.winfo_screenheight()
+
+    # Position berechnen, um das Fenster zu zentrieren
+    x = (screen_width // 2) - (window_width // 2)
+    y = (screen_height // 2) - (window_height // 2)
+    alert.geometry(f"{window_width}x{window_height}+{x}+{y}")  # Größe und Position setzen
+
+    label = tk.Label(alert, text="Stopping Scripts on Raspberry Pi's...")
     label.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
     alert.update()
     return alert

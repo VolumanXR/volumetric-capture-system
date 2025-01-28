@@ -532,8 +532,30 @@ def start_remote_hosts():
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(start_script, host_ip)
+            
+def show_stopping_alert():
+    alert = tk.Toplevel()
+    alert.title("Stopping Scripts")  # Fenstertitel setzen
+
+    window_width = 300
+    window_height = 60
+
+    # Bildschirmgröße ermitteln
+    screen_width = alert.winfo_screenwidth()
+    screen_height = alert.winfo_screenheight()
+
+    # Position berechnen, um das Fenster zu zentrieren
+    x = (screen_width // 2) - (window_width // 2)
+    y = (screen_height // 2) - (window_height // 2)
+    alert.geometry(f"{window_width}x{window_height}+{x}+{y}")  # Größe und Position setzen
+
+    label = tk.Label(alert, text="Stopping Scripts on Raspberry Pi's...")
+    label.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+    alert.update()
+    return alert
 
 def stop_remote_hosts():
+    alert_window = show_stopping_alert()
     # Load the camera list
     cameras = load_camera_list(CAMERA_LIST_FILE)
 
@@ -542,6 +564,8 @@ def stop_remote_hosts():
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(stop_script, host_ip)
+            
+    alert_window.destroy()
 
 def load_camera_list(json_path):
     """
