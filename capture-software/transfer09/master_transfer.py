@@ -1,4 +1,4 @@
-# master_transfer.py v9
+# master_transfer.py v9.1
 import tkinter as tk
 from tkinter import ttk, messagebox
 import socket
@@ -96,6 +96,9 @@ class SessionDownloaderApp:
 
         btn_delete_remote = ttk.Button(action_frame, text="Delete Session (Remote)", command=self.delete_session_remote)
         btn_delete_remote.pack(side="left", padx=5)
+        
+        btn_delete_all_remote = ttk.Button(action_frame, text="Delete All (Remote)", command=self.delete_all_sessions_remote)
+        btn_delete_all_remote.pack(side="left", padx=5)
 
         btn_open_folder = ttk.Button(action_frame, text="Open Local Folder", command=self.open_local_sessions_folder)
         btn_open_folder.pack(side="left", padx=5)
@@ -467,6 +470,24 @@ class SessionDownloaderApp:
             except:
                 pass
         messagebox.showinfo("Done", f"Requested deletion of '{session_name}' from all cameras.")
+        # Optionally refresh
+        self.master.after(1000, self.get_sessions)
+        
+    def delete_all_sessions_remote(self):
+        confirm = messagebox.askyesno("Confirm", "Delete all sessions on all cameras?")
+        if not confirm:
+            return
+
+        request = {"action": "DELETE_ALL_SESSIONS"}
+        for cam in CAMERA_LIST:
+            ip = cam["ip"]
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                    sock.settimeout(2)
+                    sock.sendto(json.dumps(request).encode(), (ip, UDP_PORT))
+            except:
+                pass
+        messagebox.showinfo("Done", "Requested deletion of all sessions from all cameras.")
         # Optionally refresh
         self.master.after(1000, self.get_sessions)
 
