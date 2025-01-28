@@ -1,4 +1,4 @@
-# master_controller.py v10.3
+# master_controller.py v10.4
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -133,6 +133,7 @@ class MainWindow:
         self.status_check_loop()
 
     def create_widgets(self):
+        
         session_frame = ttk.LabelFrame(self.root, text='Session Control')
         session_frame.pack(fill='x', padx=5, pady=5)
 
@@ -160,6 +161,29 @@ class MainWindow:
 
         capture_button = ttk.Button(still_frame, text='Capture Still Image', command=self.capture_stills)
         capture_button.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+        
+        
+        # Session Info with a Label displaying the start time when the capture of a session or a still image has been triggered, a countdown with a lable displaying the remaining local time until the start of the captured session or still image and a colored area displaying red if a session is currently recording, yellow if a session is currently being preparing, and green if the system is in standby.
+        session_info_frame = ttk.LabelFrame(self.root, text='Session Info')
+        session_info_frame.pack(fill='x', padx=5, pady=5)
+        
+        ttk.Label(session_info_frame, text='Start Time:').grid(row=0, column=0, padx=5, pady=5)
+        self.start_time_label = ttk.Label(session_info_frame, text='N/A')
+        self.start_time_label.grid(row=0, column=1, padx=5, pady=5)
+        
+        ttk.Label(session_info_frame, text='Countdown:').grid(row=1, column=0, padx=5, pady=5)
+        self.countdown_label = ttk.Label(session_info_frame, text='N/A')
+        self.countdown_label.grid(row=1, column=1, padx=5, pady=5)
+        
+        ttk.Label(session_info_frame, text='Status:').grid(row=2, column=0, padx=5, pady=5)
+        self.status_label = ttk.Label(session_info_frame, text='N/A')
+        self.status_label.grid(row=2, column=1, padx=5, pady=5)
+        
+        # colored area rectangle
+        self.status_color = tk.Canvas(session_info_frame, width=20, height=20)
+        self.status_color.grid(row=2, column=2, padx=5, pady=5)
+        self.status_color.create_rectangle(0, 0, 40, 40, fill='green')
+        
 
         status_frame = ttk.LabelFrame(self.root, text='Camera Status')
         status_frame.pack(fill='both', expand=True, padx=5, pady=5)
@@ -175,6 +199,9 @@ class MainWindow:
 
         debug_button = ttk.Button(control_frame, text='Toggle Debug Mode', command=self.toggle_debug)
         debug_button.grid(row=0, column=0, padx=5, pady=5)
+        
+        self.connected_label = ttk.Label(control_frame, text='Connected 0 / 0')
+        self.connected_label.grid(row=0, column=1, padx=5, pady=5)
 
     def toggle_debug(self):
         if self.debug_window:
@@ -304,6 +331,81 @@ class MainWindow:
         if ip in self.camera_status:
             self.camera_status[ip]['last_seen'] = time.time()
 
+    def update_connected_label(self):
+        connected = len(self.connected_cameras)
+        total = len(self.cameras)
+        self.connected_label.config(text=f'Connected {connected} / {total}')
+        
+    def compute_overall_status(self):
+        """
+        Check all cameras' states and decide on an overall status:
+        - 'RECORDING' if any camera is actually recording
+        - 'PREPARING' if not recording yet, but at least one camera is in a 'PREPARING' or 'PREPARING_STILL' state
+        - 'STANDBY' otherwise
+        """
+        is_recording = any(
+            status.get('state') == 'RECORDING'
+            for status in self.camera_status.values()
+        )
+        if is_recording:
+            return 'RECORDING'
+        
+        is_preparing = any(
+            status.get('state') in ('PREPARING', 'PREPARING_STILL', 'SYNC ISSUE')
+            for status in self.camera_status.values()
+        )
+        if is_preparing:
+            return 'PREPARING'
+        
+        return 'STANDBY'
+
+    def update_status_color(self, overall_status):
+        """
+        Update the little color box based on the overall system status.
+        """
+        color_map = {
+            'STANDBY': 'green',
+            'PREPARING': 'yellow',
+            'RECORDING': 'red'
+        }
+        color = color_map.get(overall_status, 'gray')
+        self.status_color.delete("all")  # Clear old rectangle
+        self.status_color.create_rectangle(0, 0, 40, 40, fill=color)
+
+    def update_session_info_labels(self):
+        """
+        Update the Session Info section: start time label, countdown, status label, and color box.
+        - If you have a scheduled start time in the future, show how many seconds remain, etc.
+        - If no session is scheduled, show 'N/A'.
+        """
+        # Example assumes you store the most recent start time in self.current_session_start_time
+        # whenever a new recording or still capture is scheduled. (You can set it in `start_recording`
+        # or `capture_stills` if you wish.)
+        if hasattr(self, 'current_session_start_time') and self.current_session_start_time:
+            # Show the scheduled start time
+            self.start_time_label.config(
+                text=time.strftime('%H:%M:%S', time.localtime(self.current_session_start_time))
+            )
+            
+            # Compute how long until that time
+            now = time.time()
+            remaining = self.current_session_start_time - now
+            if remaining > 0:
+                self.countdown_label.config(text=f"{int(remaining)} s")
+            else:
+                # If the time has passed, you could show "0 s" or "Started"
+                self.countdown_label.config(text="0 s")
+        else:
+            self.start_time_label.config(text='N/A')
+            self.countdown_label.config(text='N/A')
+        
+        # Determine overall status and update the label & color
+        overall_status = self.compute_overall_status()
+        self.status_label.config(text=overall_status)
+        self.update_status_color(overall_status)
+
+        
+
     def update_status_tree(self, ip):
         """Update or insert a row in the status tree for the given ip."""
         camera = next((c for c in self.cameras if c['ip'] == ip), None)
@@ -336,6 +438,8 @@ class MainWindow:
 
     def update_status_tree_loop(self):
         self.update_status_tree_all()
+        self.update_connected_label()
+        self.update_session_info_labels()
         self.root.after(100, self.update_status_tree_loop) #Non-blocking update
 
     def send_message(self, ip, message_dict):
@@ -426,6 +530,7 @@ class MainWindow:
             messagebox.showerror('Error', 'Please enter a session name.')
             return
         start_time = self.get_next_multiple_of_5_sec(min_gap=5)
+        self.current_session_start_time = start_time  # <-- store start time for UI
         self.log_event(f"Scheduling recording at {time.strftime('%H:%M:%S', time.localtime(start_time))}")
 
         # For each connected camera, store the pending start time
@@ -455,6 +560,7 @@ class MainWindow:
             return
 
         capture_time = self.get_next_multiple_of_5_sec(min_gap=5)
+        self.current_session_start_time = capture_time  # <-- store start time for UI
         self.log_event(f"Scheduling still capture at {time.strftime('%H:%M:%S', time.localtime(capture_time))}")
 
         for ip in self.ip_to_identity:
@@ -527,8 +633,20 @@ def start_remote_hosts():
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(start_script, host_ip)
+            
+def show_stopping_alert():
+    alert = tk.Toplevel()
+    alert.title("Stopping Scripts")  # Fenstertitel setzen
+    alert.geometry("300x60+600+300")  # Größe und Position des Fensters
+
+    label = tk.Label(alert, text="Stopping Scripts on all Cameras...", font=("Arial", 12))
+    label.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+    alert.update()
+    return alert
 
 def stop_remote_hosts():
+    alert_window = show_stopping_alert()
+    
     # Load the camera list
     cameras = load_camera_list(CAMERA_LIST_FILE)
 
@@ -537,6 +655,8 @@ def stop_remote_hosts():
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(stop_script, host_ip)
+    
+    alert_window.destroy()
 
 def load_camera_list(json_path):
     """
