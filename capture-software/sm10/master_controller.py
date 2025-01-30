@@ -90,7 +90,7 @@ class MainWindow:
         self.root.title('VolumanXR - Camera Control UI')
         self.debug_window = None
         self.debug_mode = False
-        self.start_up()
+        
         
 
         self.cameras = []         # Loaded from camera_list.json
@@ -112,6 +112,7 @@ class MainWindow:
         self.ip_to_identity = {}
 
         self.create_widgets()
+        self.start_up()
 
         # Initialize status for all cameras to "NO RESPONSE"
         # so they appear immediately in the UI
@@ -225,8 +226,11 @@ class MainWindow:
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
         with open(EVENT_LOG, 'a') as log_file:
             log_file.write(f'[{timestamp}] {message}\n')
-        if self.debug_mode and self.debug_window:
-            self.debug_window.insert_message('MASTER', message)
+        try:
+            if self.debug_mode and self.debug_window:
+                self.debug_window.insert_message('MASTER', message)
+        except:
+            pass
 
     def periodic_status_check(self):
         """Periodically checks each camera's 'last_seen' time. If older than
@@ -663,19 +667,47 @@ def get_ip_address_in_network(target_network="10.50.100.0/24"):
     return None
 
 def start_remote_hosts():
+    alert_window = show_starting_alert()
     # Load the camera list
     cameras = load_camera_list(CAMERA_LIST_FILE)
     master_voluman_net_ip = get_ip_address_in_network()
+    cpu_cores = os.cpu_count()
+    workers = cpu_cores * 2
 
     # Start the script on each camera
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(start_script, host_ip, master_voluman_net_ip)
             
+    alert_window.destroy()
+            
+def show_starting_alert():
+    alert = tk.Toplevel()
+    alert.title("Starting Scripts")  # Fenstertitel setzen
+    alert.attributes("-topmost", True)
+
+    window_width = 300
+    window_height = 60
+
+    # Bildschirmgröße ermitteln
+    screen_width = alert.winfo_screenwidth()
+    screen_height = alert.winfo_screenheight()
+
+    # Position berechnen, um das Fenster zu zentrieren
+    x = (screen_width // 2) - (window_width // 2)
+    y = (screen_height // 2) - (window_height // 2)
+    alert.geometry(f"{window_width}x{window_height}+{x}+{y}")  # Größe und Position setzen
+
+    label = tk.Label(alert, text="Starting Scripts on Raspberry Pi's...")
+    label.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+    alert.update()
+    return alert
+
 def show_stopping_alert():
     alert = tk.Toplevel()
     alert.title("Stopping Scripts")  # Fenstertitel setzen
+    alert.attributes("-topmost", True)
 
     window_width = 300
     window_height = 60
@@ -699,9 +731,11 @@ def stop_remote_hosts():
     
     # Load the camera list
     cameras = load_camera_list(CAMERA_LIST_FILE)
+    cpu_cores = os.cpu_count()
+    workers = cpu_cores * 2
 
     # Start the script on each camera
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(stop_script, host_ip)

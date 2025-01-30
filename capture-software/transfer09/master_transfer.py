@@ -23,7 +23,9 @@ UDP_PORT = 50005
 TCP_PORT = 50006
 SESSIONS_FOLDER = "Sessions"
 REFRESH_INTERVAL_MS = 60000
-MAX_SIMULTANEOUS_DOWNLOADS = 10
+cpu_cores = os.cpu_count()
+MAX_SIMULTANEOUS_DOWNLOADS = cpu_cores * 2
+# MAX_SIMULTANEOUS_DOWNLOADS = 10
 
 SCRIPTNAME = 'remote_transfer.py'
 USERNAME = 'voluman'
@@ -31,7 +33,6 @@ PASSWORD = 'xr'
 
 class SessionDownloaderApp:
     def __init__(self, master, on_close_callback=None):
-        start_remote_hosts()
         self.master = master
         self.master.title("Download Manager (Threaded Session Query)")
 
@@ -46,6 +47,7 @@ class SessionDownloaderApp:
         self.download_lock = threading.Lock()
 
         self.create_widgets()
+        start_remote_hosts()
         os.makedirs(SESSIONS_FOLDER, exist_ok=True)
 
         # Kick off initial retrieval
@@ -524,18 +526,46 @@ class SessionDownloaderApp:
         return f"{s} {size_name[i]}"
 
 def start_remote_hosts():
+    alert_window = show_starting_alert()
     # Load the camera list
     cameras = load_camera_list(CAMERA_LIST_FILE)
+    cpu_cores = os.cpu_count()
+    workers = cpu_cores * 2
 
     # Start the script on each camera
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(start_script, host_ip)
+
+    alert_window.destroy()
+            
+def show_starting_alert():
+    alert = tk.Toplevel()
+    alert.title("Starting Scripts")  # Fenstertitel setzen
+    alert.attributes("-topmost", True)
+
+    window_width = 300
+    window_height = 60
+
+    # Bildschirmgröße ermitteln
+    screen_width = alert.winfo_screenwidth()
+    screen_height = alert.winfo_screenheight()
+
+    # Position berechnen, um das Fenster zu zentrieren
+    x = (screen_width // 2) - (window_width // 2)
+    y = (screen_height // 2) - (window_height // 2)
+    alert.geometry(f"{window_width}x{window_height}+{x}+{y}")  # Größe und Position setzen
+
+    label = tk.Label(alert, text="Starting Scripts on Raspberry Pi's...")
+    label.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+    alert.update()
+    return alert
             
 def show_stopping_alert():
     alert = tk.Toplevel()
     alert.title("Stopping Scripts")  # Fenstertitel setzen
+    alert.attributes("-topmost", True)
 
     window_width = 300
     window_height = 60
@@ -558,9 +588,11 @@ def stop_remote_hosts():
     alert_window = show_stopping_alert()
     # Load the camera list
     cameras = load_camera_list(CAMERA_LIST_FILE)
+    cpu_cores = os.cpu_count()
+    workers = cpu_cores * 2
 
     # Start the script on each camera
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(stop_script, host_ip)
