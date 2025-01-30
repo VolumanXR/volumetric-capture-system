@@ -209,9 +209,12 @@ def main():
     except Exception as e:
         print(f"Failed to load camera list from {CAMERA_LIST_JSON}: {e}")
         sys.exit(1)
+    
+    cpu_cores = os.cpu_count()
+    workers = cpu_cores * 2
 
     # Iterate over all cameras
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         for cam in camera_list:
             host_ip = cam["ip"]
 
