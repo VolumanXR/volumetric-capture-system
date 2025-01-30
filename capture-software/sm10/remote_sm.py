@@ -1,4 +1,4 @@
-# remote_sm.py v10.4
+# remote_sm.py v10.5
 
 import os
 import time
@@ -20,6 +20,14 @@ EVENT_LOG = 'event_log.txt'
 STORAGE_PATH = 'Recordings'
 CAMERA_SETTINGS_FILE = 'camera_settings.json'
 
+# the script gets called with nohub python3 remote_sm.py & the ip address of the master pc as the first argument, so get the MASTER_PC_IP from the first argument
+def get_master_ip_address():
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    return '10.50.100.2'
+
+MASTER_PC_IP = get_master_ip_address()
+
 # Decide MASTER_PC_IP based on our IP
 def get_ip_address():
     import netifaces
@@ -34,13 +42,6 @@ def get_ip_address():
     return 'Unknown'
 
 my_ip = get_ip_address()
-if my_ip.startswith("192.168.179."):
-    MASTER_PC_IP = "192.168.179.9"
-elif my_ip.startswith("10.50.100."):
-    MASTER_PC_IP = "10.50.100.2"
-else:
-    # Fallback if you have more subnets
-    MASTER_PC_IP = "192.168.179.9"
 
 MASTER_PC_PORT = 50005
 

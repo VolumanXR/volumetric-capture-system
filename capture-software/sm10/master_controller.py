@@ -1,4 +1,4 @@
-# master_controller.py v10.4
+# master_controller.py v10.5
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -13,6 +13,10 @@ from pathlib import Path
 import paramiko
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+import socket
+import ipaddress
+import subprocess
+import re
 
 # Configuration
 USERNAME = "voluman"
@@ -623,16 +627,51 @@ def update_dist_time():
 
     except Exception as e:
         print(f"Error occurred: {e}")
+        
+def get_ip_address_in_network(target_network="10.50.100.0/24"):
+    """
+    Gibt die aktuelle IP-Adresse des Hosts zurück, die Teil des angegebenen Netzwerks ist.
+    
+    :param target_network: Das Zielnetzwerk im CIDR-Format. Standardmäßig "10.50.100.0/24".
+    :return: Die IP-Adresse als String oder None, wenn keine passende IP gefunden wurde.
+    """
+    try:
+        # Versuche, die IP über eine Socket-Verbindung zu ermitteln
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # Verbinde zu einem externen Server (hier Google DNS)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        
+        # Prüfe, ob die IP im Zielnetzwerk liegt
+        if ipaddress.ip_address(ip) in ipaddress.ip_network(target_network):
+            return ip
+    except Exception:
+        pass
+    
+    # Fallback: Verwende 'ipconfig' und parse die Ausgabe
+    try:
+        output = subprocess.check_output("ipconfig", encoding='utf-8')
+        # Suche nach IPv4-Adressen
+        ipv4_addresses = re.findall(r'IPv4-Adresse[.\s]*: ([\d.]+)', output)
+        for ip in ipv4_addresses:
+            if ipaddress.ip_address(ip) in ipaddress.ip_network(target_network):
+                return ip
+    except Exception as e:
+        print(f"Fehler beim Abrufen der IP-Adresse: {e}")
+    
+    return None
 
 def start_remote_hosts():
     # Load the camera list
     cameras = load_camera_list(CAMERA_LIST_FILE)
+    master_voluman_net_ip = get_ip_address_in_network()
 
     # Start the script on each camera
     with ThreadPoolExecutor(max_workers=10) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
-            executor.submit(start_script, host_ip)
+            executor.submit(start_script, host_ip, master_voluman_net_ip)
             
 def show_stopping_alert():
     alert = tk.Toplevel()
@@ -700,7 +739,7 @@ def connect_ssh(host):
     ssh.connect(hostname=host, username=USERNAME, password=PASSWORD, timeout=5)
     return ssh
 
-def start_script(host):
+def start_script(host, master_voluman_net_ip):
 
     """
     Start the script on the Pi in the background (nohup).
@@ -709,7 +748,7 @@ def start_script(host):
     try:
         ssh = connect_ssh(host)
         cmd = (
-            f"nohup python3 /home/voluman/{SCRIPTNAME} "
+            f"nohup python3 /home/voluman/{SCRIPTNAME} {master_voluman_net_ip}"
             f"> /home/voluman/{SCRIPTNAME}.log 2>&1 &"
         )
         _, err = ssh_command(ssh, cmd)
