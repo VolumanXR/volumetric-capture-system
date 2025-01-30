@@ -1,4 +1,4 @@
-# master_controller.py v10.5
+# master_controller.py v10.6
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -163,9 +163,16 @@ class MainWindow:
         ttk.Label(still_frame, text='Session Name for Still:').grid(row=0, column=0, padx=5, pady=5)
         self.still_name_entry = ttk.Entry(still_frame)
         self.still_name_entry.grid(row=0, column=1, padx=5, pady=5)
+        
+        # add a dropdown menu to select the resolution of the still with the options SD, HD, FullHD, 4K with the default to be FullHD
+        ttk.Label(still_frame, text='Resolution:').grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        self.resolution_still = tk.StringVar()
+        self.resolution_still.set('FullHD')
+        resolution_still_menu = ttk.OptionMenu(still_frame, self.resolution_still, 'FullHD', 'SD', 'HD', 'FullHD', 'UHD')
+        resolution_still_menu.grid(row=1, column=1, padx=5, pady=5, sticky='ew')
 
         capture_button = ttk.Button(still_frame, text='Capture Still Image', command=self.capture_stills)
-        capture_button.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+        capture_button.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky='w')
         
         
         # Session Info with a Label displaying the start time when the capture of a session or a still image has been triggered, a countdown with a lable displaying the remaining local time until the start of the captured session or still image and a colored area displaying red if a session is currently recording, yellow if a session is currently being preparing, and green if the system is in standby.
@@ -566,7 +573,8 @@ class MainWindow:
         if not session_name:
             messagebox.showerror('Error', 'Please enter a session name for the still.')
             return
-
+        
+        still_resolution = self.resolution_still.get()
         capture_time = self.get_next_multiple_of_5_sec(min_gap=5)
         self.current_session_start_time = capture_time  # <-- store start time for UI
         self.log_event(f"Scheduling still capture at {time.strftime('%H:%M:%S', time.localtime(capture_time))}")
@@ -578,7 +586,8 @@ class MainWindow:
             msg = {
                 'task': 'REC_STILL',
                 'session_name': session_name,
-                'start_time': capture_time
+                'start_time': capture_time,
+                'resolution': still_resolution
             }
             self.send_message(ip, msg)
 

@@ -1,4 +1,4 @@
-# remote_sm.py v10.5
+# remote_sm.py v10.6
 
 import os
 import time
@@ -153,10 +153,27 @@ def apply_settings(settings):
     except Exception as e:
         log_event(f"Error applying settings: {e}")
 
-def configure_camera():
+def configure_camera(custom_resolution=None):
     
-    width = default_settings['width']
-    height = default_settings['height']
+    if (custom_resolution is not None):
+        if (custom_resolution == 'FullHD'):
+            width = 1920
+            height = 1080
+        elif (custom_resolution == 'HD'):
+            width = 1280
+            height = 720
+        elif (custom_resolution == 'SD'):
+            width = 640
+            height = 480
+        elif (custom_resolution == 'UHD'):
+            width = 3840
+            height = 2160
+        else:
+            width = default_settings['width']
+            height = default_settings['height']
+    else: 
+        width = default_settings['width']
+        height = default_settings['height']
     
     video_config = picam2.create_video_configuration(main={"size": (width, height)})
     picam2.configure(video_config)
@@ -363,7 +380,7 @@ def stop_recording_func():
         except Exception as e:
             log_event(f'Error processing with FFmpeg: {e}')
 
-def still_starter(session_name, start_time):
+def still_starter(session_name, start_time, session_resolution):
     """
     At start_time, capture a single still image (JPEG).
     """
@@ -391,6 +408,8 @@ def still_starter(session_name, start_time):
     image_file = os.path.join(STORAGE_PATH, f"{session_name}_{ip_suffix}.jpg")
 
     # We can do this on the live video config
+    picam2.stop()
+    configure_camera(session_resolution)
     picam2.capture_file(image_file)
     log_event(f"Still image captured: {image_file}")
 
@@ -417,7 +436,8 @@ def handle_messages():
             elif task == 'REC_STILL':
                 s_name = message.get('session_name')
                 start_t = message.get('start_time', time.time()+5)
-                t = threading.Thread(target=still_starter, args=(s_name, start_t), daemon=True)
+                s_res = message.get('resolution', 'FullHD')
+                t = threading.Thread(target=still_starter, args=(s_name, start_t, s_res), daemon=True)
                 t.start()
 
             elif task == 'UPDATE_SETTINGS':
