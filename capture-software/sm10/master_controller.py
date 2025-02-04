@@ -17,6 +17,7 @@ import socket
 import ipaddress
 import subprocess
 import re
+import pygame
 
 # Configuration
 USERNAME = "voluman"
@@ -110,6 +111,10 @@ class MainWindow:
         self.connected_cameras = {}
         # reverse: ip -> identity mapping
         self.ip_to_identity = {}
+
+        pygame.mixer.init()
+        self.sound = pygame.mixer.Sound(os.path.join(SCRIPT_DIR.parent.parent,  'utils','202741__preilly11__eos-shutter-1.wav'))
+        self.sound_triggered = False
 
         self.create_widgets()
         self.start_up()
@@ -407,9 +412,13 @@ class MainWindow:
             remaining = self.current_session_start_time - now
             if remaining > 0:
                 self.countdown_label.config(text=f"{int(remaining)} s")
+                self.sound_triggered = False
             else:
                 # If the time has passed, you could show "0 s" or "Started"
                 self.countdown_label.config(text="0 s")
+                if not self.sound_triggered:
+                    self.sound.play()
+                    self.sound_triggered = True
         else:
             self.start_time_label.config(text='N/A')
             self.countdown_label.config(text='N/A')
