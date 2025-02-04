@@ -1,4 +1,4 @@
-# remote_sm.py v10.6
+# remote_sm.py v10.7
 
 import os
 import time
@@ -15,6 +15,8 @@ import datetime
 from picamera2 import Picamera2, Preview
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import FileOutput
+
+from libcamera import controls as libcontrols
 
 EVENT_LOG = 'event_log.txt'
 STORAGE_PATH = 'Recordings'
@@ -65,7 +67,7 @@ default_settings = {
     "height": 1080,
     "frame_rate": 25,
     "shutter_angle": 20,
-    "iso": 864,
+    "iso": 560,
     "brightness": 0,
     "contrast": 100,
     "saturation": 95,
@@ -73,11 +75,11 @@ default_settings = {
     "auto_exposure": False,
     "flicker_control": "Off",
     "flicker_period": 50,
-    "white_balance": "Auto",
+    "white_balance": "Daylight",
     "red_gain": 1.1,
     "blue_gain": 2.5,
     "af_mode": "manual",
-    "lens_position": 0.58
+    "lens_position": 0.36
 }
 if os.path.exists(CAMERA_SETTINGS_FILE):
     with open(CAMERA_SETTINGS_FILE, 'r') as f:
@@ -97,6 +99,11 @@ def apply_settings(settings):
     frame_rate = float(settings.get('frame_rate', 25))
     controls["FrameRate"] = frame_rate
     shutter_angle = float(settings.get('shutter_angle', 180))
+
+    width,_ = picam2.stream_configuration("main")["size"]
+    if width>1920:
+        shutter_angle = shutter_angle * 2
+
     base_exposure_time = (shutter_angle / 360.0) * (1.0 / frame_rate) * 1_000_000
     iso_value = float(settings.get('iso', 100))
 
@@ -126,27 +133,30 @@ def apply_settings(settings):
         controls["AnalogueGain"] = iso_value / 100.0
 
     wb_selection = settings.get('white_balance', 'Auto')
-    if wb_selection == 'Auto':
-        controls["AwbEnable"] = True
-    else:
+    if wb_selection and wb_selection == 'Custom':
         controls["AwbEnable"] = False
-        if wb_selection == 'Manual':
-            red_gain = float(settings.get('red_gain', 1.0))
-            blue_gain = float(settings.get('blue_gain', 1.0))
-            controls["ColourGains"] = (red_gain, blue_gain)
-        else:
-            if wb_selection == '3200K':
-                controls["ColourGains"] = (2.3, 1.3)
-            elif wb_selection == '4400K':
-                controls["ColourGains"] = (1.8, 1.5)
-            elif wb_selection == '5600K':
-                controls["ColourGains"] = (1.5, 1.8)
+        # if wb_selection == 'Manual':
+        #     red_gain = float(settings.get('red_gain', 1.0))
+        #     blue_gain = float(settings.get('blue_gain', 1.0))
+        #     controls["ColourGains"] = (red_gain, blue_gain)
+        # else:
+        if wb_selection == '3200K':
+            controls["ColourGains"] = (2.3, 1.3)
+        elif wb_selection == '4400K':
+            controls["ColourGains"] = (1.8, 1.5)
+        elif wb_selection == '5600K':
+            controls["ColourGains"] = (1.5, 1.8)
+    else:
+        controls["AwbEnable"] = True
+        controls["AwbMode"]= getattr(libcontrols.AwbModeEnum, wb_selection, 0) # 0 = 'Auto'
+
+
     
     if settings.get('af_mode', 'manual') == 'auto':
         controls["AfMode"] = 2
     else:
         controls["AfMode"] = 0
-    controls["LensPosition"] = settings.get('lens_position', 0.58)
+    controls["LensPosition"] = settings.get('lens_position', 0.36)
 
     try:
         picam2.set_controls(controls)
@@ -178,6 +188,7 @@ def configure_camera(custom_resolution=None):
     video_config = picam2.create_video_configuration(main={"size": (width, height)})
     picam2.configure(video_config)
     picam2.start()
+    picam2.options["quality"] = 100
     apply_settings(default_settings)
 
 configure_camera()
@@ -399,10 +410,6 @@ def still_starter(session_name, start_time, session_resolution):
     }
     send_message(ack_msg)
 
-    wait_time = start_time - time.time()
-    if wait_time > 0:
-        time.sleep(wait_time)
-
     # Just capture a file in the current running config
     ip_suffix = my_ip.split('.')[-1]
     image_file = os.path.join(STORAGE_PATH, f"{session_name}_{ip_suffix}.jpg")
@@ -410,6 +417,11 @@ def still_starter(session_name, start_time, session_resolution):
     # We can do this on the live video config
     picam2.stop()
     configure_camera(session_resolution)
+
+    wait_time = start_time - time.time()
+    if wait_time > 0:
+        time.sleep(wait_time)
+
     picam2.capture_file(image_file)
     log_event(f"Still image captured: {image_file}")
 
