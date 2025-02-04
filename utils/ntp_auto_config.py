@@ -17,7 +17,7 @@ confdir /etc/chrony/conf.d
 # Use Debian vendor zone.
 # pool 2.debian.pool.ntp.org iburst
 
-server 10.50.100.5 iburst
+server 10.50.100.5 iburst minpoll 2 maxpoll 2
 
 # Use time sources from DHCP.
 sourcedir /run/chrony-dhcp
@@ -51,7 +51,7 @@ rtcsync
 
 # Step the system clock instead of slewing it if the adjustment is larger than
 # one second, but only in the first three clock updates.
-makestep 0.2 3
+makestep 0.02 3
 
 # Get TAI-UTC offset and leap seconds from the system tz database.
 # This directive must be commented out when using time sources serving
