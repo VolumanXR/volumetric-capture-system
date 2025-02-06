@@ -58,6 +58,7 @@ state = STANDBY
 session_name = ''
 recording_file = ''
 timecode = '00:00:00:00'
+fps = 25
 
 if not os.path.exists(STORAGE_PATH):
     os.makedirs(STORAGE_PATH)
@@ -272,12 +273,12 @@ def sync_with_ntp():
         print(f"Error occurred: {e}")
         print(f"stderr: {e.stderr.decode()}")  # Print the standard error output if any
 
-def get_current_timecode(framerate, timecode_start_time):
+def get_formatted_timecode(framerate, timecode_start_time):
     """
     Returns the current system time formatted as a timecode string.
     Format: HH:MM:SS:FF where FF is the frame number within the current second.
     """
-    now = datetime.datetime.now()
+    now = timecode_start_time
     frame_fraction = now.microsecond / 1_000_000  # Fraction of the current second
     ff = round(frame_fraction * framerate)
     timecode = now.strftime(f"%H:%M:%S:{ff:02d}")
@@ -315,6 +316,7 @@ def recording_starter(session_name, bitrate, start_time):
     ### Doppelt 
     # width = default_settings['width']
     # height = default_settings['height']
+    global fps
     fps = default_settings['frame_rate']
     # video_config = picam2.create_video_configuration(main={"size": (width, height)})
     # picam2.configure(video_config)
@@ -335,16 +337,48 @@ def recording_starter(session_name, bitrate, start_time):
     start = time.perf_counter()
     picam2.start()
     offset = time.perf_counter() - (start / 2)
-    timecode_start_time = datetime.datetime.now()
+    timecode_start_time = datetime.datetime.now() # Verbesserung gegenüber des alten Codes
     # timecode_start_time = timecode_start_time - datetime.timedelta(seconds=offset)
     
     state = RECORDING
     log_event(f'Recording started: {recording_file}')
+    
+    # Save timestamps in realtion to the frames in a json file which is names the same as the recording file
+    
+    frame_timestamps = {}
+    frame_number = 0
+    
+    while (state == RECORDING):
+        metadata = picam2.capture_metadata()
+        
+        if ("SensorTimestamp" in metadata and metadata is not None):
+            # last entry of frame_timestamps
+            lastSensorTimestamp = frame_timestamps.get(frame_number-1, 0)
+            if abs(lastSensorTimestamp - metadata["SensorTimestamp"]) < (1/fps) * 1.1:
+                frame_timestamps[frame_number] = metadata["SensorTimestamp"]
+                frame_number = frame_number + 1
+            else:
+                time_interval = abs(lastSensorTimestamp - metadata["SensorTimestamp"])
+                dropped_frames = round(time_interval / (1/fps))
+                for i in range(dropped_frames):
+                    frame_timestamps[frame_number] = 'dropped'
+                    frame_number = frame_number + 1
+        
+        time.sleep(1/(2*fps))
+    
+    metadata_file = os.path.splitext(recording_file)[0]
+    metadata_file = metadata_file + '.json'
+    
+    with open(metadata_file, 'w') as f:
+        json.dump(frame_timestamps, f)
+        
+    print(f"Metadata file saved: {metadata_file}")
+    
     global timecode
-    timecode = get_current_timecode(fps, timecode_start_time)
+    timecode = get_formatted_timecode(fps, timecode_start_time)
 
 def ffmpeg_processing():
-    global timecode, recording_file
+    global timecode, recording_file, fps
     recording_file_name = os.path.splitext(recording_file)[0]
     recording_file_name = recording_file_name + '.mp4'
     
@@ -354,6 +388,7 @@ def ffmpeg_processing():
         '-y',  # Overwrite output file if it exists
         '-f', 'h264',  # Input format
         '-i', recording_file,  # Input from stdin
+        '-r', str(fps),  # Output frame rate
         '-c', 'copy',  # Copy codec (no re-encoding)
         '-timecode', timecode,  # Set starting timecode
         recording_file_name  # Output file

@@ -14,7 +14,7 @@ TCP_PORT = 50006
 RECORDINGS_FOLDER = "Recordings"  # Update this path
 
 # We support both .h264 and .jpg for each "session"
-SUPPORTED_EXTENSIONS = ('.h264', '.jpg', '.mp4')
+SUPPORTED_EXTENSIONS = ('.h264', '.jpg', '.mp4', '.json')
 
 def get_suffix():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
