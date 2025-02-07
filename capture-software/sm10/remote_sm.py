@@ -366,11 +366,18 @@ def recording_starter(session_name, bitrate, start_time):
                     frame_number = frame_number + 1
                 else:
                     dropped_frames = round(timestamp_interval / frame_time)
-                    for i in range(dropped_frames):
-                        frame_timestamps[frame_number] = 'dropped'
-                        frame_number = frame_number + 1
+                                        
+                    frame_timestamps[frame_number] = 'dropped'
+                    frame_number = frame_number + 1
+
+                    frame_number = frame_number + dropped_frames-1
+
+                    frame_timestamps[frame_number] = metadata["SensorTimestamp"]
+                    frame_number = frame_number + 1
         
-        # time.sleep(1/fps)
+    picam2.stop_recording()
+    # Reconfigure camera in a default video mode
+    configure_camera()
     
     metadata_file = os.path.splitext(recording_file)[0]
     metadata_file = metadata_file + '.json'
@@ -419,11 +426,9 @@ def stop_recording_func():
     
     global state
     if state == RECORDING:
-        picam2.stop_recording()
-        # Reconfigure camera in a default video mode
-        configure_camera()
         state = STANDBY
         log_event('Recording stopped.')
+        time.sleep(0.5)
     
         # Add FFmpeg processing
         try:
