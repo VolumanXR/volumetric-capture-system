@@ -1,6 +1,6 @@
-# master_transfer.py v9.1
+# master_transfer.py v9.2
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, Menu
 import socket
 import json
 import os
@@ -11,6 +11,8 @@ import threading
 from pathlib import Path
 import paramiko
 from concurrent.futures import ThreadPoolExecutor
+import subprocess
+import shutil
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent,  'utils','camera_list.json') 
@@ -34,7 +36,7 @@ PASSWORD = 'xr'
 class SessionDownloaderApp:
     def __init__(self, master, on_close_callback=None):
         self.master = master
-        self.master.title("Download Manager (Threaded Session Query)")
+        self.master.title("VolumanXR - Download Manager")
 
         self.on_close_callback = on_close_callback  # Store the callback
 
@@ -47,17 +49,40 @@ class SessionDownloaderApp:
         self.download_lock = threading.Lock()
 
         self.create_widgets()
+        self.create_menubar()  # <-- Add the menubar to the main window
+
         start_remote_hosts()
         os.makedirs(SESSIONS_FOLDER, exist_ok=True)
 
         # Kick off initial retrieval
         self.get_sessions()
         self.schedule_refresh()
+        
+    def open_git_repository(self):
+        import webbrowser
+        webbrowser.open('https://github.com/tallAldi/VolumanXR')
 
-    def _handle_close(self):
-        if self.on_close_callback:
-            self.on_close_callback()
-        self.destroy()
+    def create_menubar(self):
+        """Creates a menubar with File and Help menus."""
+        menubar = tk.Menu(self.master)
+
+        # File Menu
+        file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label="Open Git Repository", command=self.open_git_repository)
+        file_menu.add_command(label="Exit", command=self.on_close)
+        menubar.add_cascade(label="File", menu=file_menu)
+
+        # Help Menu
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label="About", command=self.show_about)
+        menubar.add_cascade(label="Help", menu=help_menu)
+
+        # Configure the master to display the menubar
+        self.master.config(menu=menubar)
+
+    def show_about(self):
+        """Display an 'About' message."""
+        messagebox.showinfo("About", "Session Downloader App v1.0\nDownload sessions easily!")
 
     def create_widgets(self):
         # Frame
@@ -67,6 +92,8 @@ class SessionDownloaderApp:
         # Buttons
         self.refresh_button = ttk.Button(frame, text="Refresh", command=self.get_sessions)
         self.refresh_button.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        
+        # insert loading indicator while refreshing
 
         self.session_tree = ttk.Treeview(
             frame,
@@ -101,6 +128,9 @@ class SessionDownloaderApp:
         
         btn_delete_all_remote = ttk.Button(action_frame, text="Delete All (Remote)", command=self.delete_all_sessions_remote)
         btn_delete_all_remote.pack(side="left", padx=5)
+        
+        btn_convert_into_frames_local = ttk.Button(action_frame, text="Convert into Frames (Local)", command=self.convert_into_frames_local)
+        btn_convert_into_frames_local.pack(side="left", padx=5)
 
         btn_open_folder = ttk.Button(action_frame, text="Open Local Folder", command=self.open_local_sessions_folder)
         btn_open_folder.pack(side="left", padx=5)
@@ -121,6 +151,7 @@ class SessionDownloaderApp:
         # Grid config
         frame.rowconfigure(1, weight=1)
         frame.columnconfigure(0, weight=1)
+
 
     # ---------------------------------------------------------------------
     # Session Retrieval in Background
@@ -492,6 +523,194 @@ class SessionDownloaderApp:
         messagebox.showinfo("Done", "Requested deletion of all sessions from all cameras.")
         # Optionally refresh
         self.master.after(1000, self.get_sessions)
+        
+    # ---------------------------------------------------------------------
+    # Conversion
+    # ---------------------------------------------------------------------
+            
+    # together with every .mp4 file in the session folder is a .json file with the same name. In there are the frames counting up. Sometimes a frame number has the attribute "dropped" like: "1024": "dropped" Therefore there is no frame. However in the videofile, the video is continous and skips the dropped frames. The detectet dropped frames need to be respected by the sorting algorithm.
+    # The goal is to create a folder "Frames" inside of a local sessions folder. In there there are folders per each frame like: Frame00001, Frame00002, ... Please make the digits be as long as negessary to cover the maximum amout of frames from each .mp4. In each Frame Folder the frames of the session are stored as .jpg files. The Suffix of the original .mp4 file for a video contains the camera number like: DavidRec02_114.mp4 for camera 14 and DavidRec02_115.mp4 for camera 15. 
+    # The frames of the session are stored in the .json file with the same name as the .mp4 file. The frames are stored in the .json file in the order of the cameras.
+    # If a frame is dropped, the .jpg file is not created.
+    # Remame the files into cam01.jpg for camera 01, cam02.jpg for camera 02, ... in each frame folder.
+    # Sort the frames of each camera into the Frame Folders
+    # Use ffpmeg in subprocesses to convert the videos into frames and don't use OpenCV
+    
+    
+    def convert_into_frames_local(self):
+        """
+        Triggered from the UI. Asks which session to convert.
+        """
+        sel = self.session_tree.selection()
+        if not sel:
+            messagebox.showwarning("Warning", "Select a session.")
+            return
+
+        session_name = self.session_tree.item(sel[0], "values")[0]
+        session_folder = os.path.join(SESSIONS_FOLDER, session_name)
+        if not os.path.exists(session_folder):
+            messagebox.showinfo("Info", "Session not found locally.")
+            return
+
+        confirm = messagebox.askyesno(
+            "Confirm",
+            f"Convert session '{session_name}' into frames?"
+        )
+        if not confirm:
+            return
+
+        self.convert_session_into_frames(session_name)
+
+
+    def convert_session_into_frames(self, session_name):
+        """
+        1) Find the global maximum frame index across all JSONs in this session,
+           so we can determine the zero-padding for FrameXXXX directories.
+        2) Convert each .mp4 → frames (skipping 'dropped').
+        """
+        session_folder = os.path.join(SESSIONS_FOLDER, session_name)
+        frames_folder = os.path.join(session_folder, "Frames")
+        os.makedirs(frames_folder, exist_ok=True)
+
+        # ------------------------------
+        # 1) Gather global maximum frame index across all JSON
+        # ------------------------------
+        global_max_frame_index = 0
+        for file in os.listdir(session_folder):
+            if file.lower().endswith(".json"):
+                json_path = os.path.join(session_folder, file)
+                with open(json_path, 'r') as jf:
+                    frames_dict = json.load(jf)
+                # frames_dict is like {"0": "...", "1": "dropped", etc.}
+                for k, v in frames_dict.items():
+                    if v != "dropped":
+                        frame_idx = int(k)
+                        if frame_idx > global_max_frame_index:
+                            global_max_frame_index = frame_idx
+
+        # Determine how many digits we need for zero‐padding
+        # e.g. max frame index=12345 => 5 digits
+        global_digits = len(str(global_max_frame_index))
+
+        # ------------------------------
+        # 2) Convert each .mp4 file by:
+        #    a) Single ffmpeg extraction to a temp folder
+        #    b) Renaming frames into FrameXXXX subfolders
+        # ------------------------------
+        for file in os.listdir(session_folder):
+            if file.lower().endswith(".mp4"):
+                self.convert_video_into_frames(
+                    session_name=session_name,
+                    video_file=file,
+                    global_digits=global_digits
+                )
+
+
+    def convert_video_into_frames(self, session_name, video_file, global_digits):
+        """
+        Extract all frames in one go using ffmpeg. Then move/rename them
+        into `Frames/Frame000xx` subfolders, skipping dropped frames.
+        """
+        session_folder = os.path.join(SESSIONS_FOLDER, session_name)
+        video_path = os.path.join(session_folder, video_file)
+
+        # The matching JSON
+        json_file = video_file.replace(".mp4", ".json")
+        json_path = os.path.join(session_folder, json_file)
+        if not os.path.exists(json_path):
+            messagebox.showinfo("Info", f"JSON file for '{video_file}' not found.")
+            return
+
+        # Load frame info from JSON
+        with open(json_path, 'r') as f:
+            frames_dict = json.load(f)
+
+        # Gather all valid (non-dropped) frames in ascending order
+        valid_frames = [
+            int(k) for k,v in frames_dict.items() 
+            if v != "dropped"
+        ]
+        valid_frames.sort()
+
+        if not valid_frames:
+            messagebox.showinfo("Info", f"No valid frames in '{json_file}'.")
+            return
+
+        # TEMP folder to hold raw ffmpeg‐extracted images
+        temp_folder = os.path.join(session_folder, "temp_extraction_" + video_file.replace(".mp4", ""))
+        if os.path.exists(temp_folder):
+            shutil.rmtree(temp_folder)
+        os.makedirs(temp_folder)
+
+        # Single ffmpeg call to extract *all* frames
+        # We'll get (1) ... (N) frames as frame_000001.jpg, frame_000002.jpg, ...
+        output_pattern = os.path.join(temp_folder, "frame_%06d.jpg")
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-i", video_path,
+            "-q:v", "2",   # quality
+            output_pattern
+        ]
+        try:
+            subprocess.run(ffmpeg_cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            messagebox.showerror("FFmpeg Error", str(e))
+            return
+
+        # Figure out how many images ffmpeg actually extracted
+        extracted_frames = sorted(
+            f for f in os.listdir(temp_folder) 
+            if f.lower().endswith(".jpg") and f.startswith("frame_")
+        )
+        extracted_count = len(extracted_frames)
+
+        # Parse out the camera number from e.g. "DavidRec02_114.mp4" → camera=14
+        # Adjust the logic to match your naming convention:
+        camera_raw = video_file.split("_")[-1].replace(".mp4", "")  # e.g. "114"
+        camera_id = int(camera_raw) - 100  # Example offset if that is consistent
+        # Or if you prefer directly using '114':
+        # camera_id = int(camera_raw)
+
+        # The folder where final frames go
+        frames_folder = os.path.join(session_folder, "Frames")
+
+        # Move/rename only as many frames as we have valid_frames for
+        # i.e. if the video is unexpectedly short or long, handle gracefully
+        move_count = min(len(valid_frames), extracted_count)
+
+        for i in range(move_count):
+            json_frame_index = valid_frames[i]  # e.g. 100, 101, ...
+            # The i-th extracted image is frame_%06d where %06d = i+1
+            extracted_name = f"frame_{(i+1):06d}.jpg"
+            extracted_path = os.path.join(temp_folder, extracted_name)
+            if not os.path.isfile(extracted_path):
+                # If for some reason the file doesn't exist, skip
+                continue
+
+            # Build the "FrameXXXXX" folder name, zero‐padded
+            # according to the *global* digit count
+            frame_folder_name = f"Frame{json_frame_index:0{global_digits}d}"
+            frame_folder_path = os.path.join(frames_folder, frame_folder_name)
+            os.makedirs(frame_folder_path, exist_ok=True)
+
+            # e.g. cam14.jpg
+            cam_name = f"cam{camera_id:02d}.jpg"
+            final_path = os.path.join(frame_folder_path, cam_name)
+
+            # Move or rename the file
+            shutil.move(extracted_path, final_path)
+
+        # Cleanup: remove the temporary extraction folder
+        shutil.rmtree(temp_folder)
+
+    
+            
+            
+    
+        
+        
+    
+    
 
     # ---------------------------------------------------------------------
     # Misc
