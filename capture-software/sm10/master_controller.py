@@ -368,6 +368,10 @@ class MainWindow:
             self.camera_status[ip]['last_seen'] = time.time()
 
     def update_connected_label(self):
+        for identity, ip in list(self.connected_cameras.items()):
+            if self.camera_status[ip]['state'] == 'NO RESPONSE':
+                self.connected_cameras.pop(identity)
+           
         connected = len(self.connected_cameras)
         total = len(self.cameras)
         self.connected_label.config(text=f'Connected {connected} / {total}')
