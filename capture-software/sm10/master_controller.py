@@ -18,6 +18,7 @@ import ipaddress
 import subprocess
 import re
 import pygame
+from enum import Enum
 
 # Configuration
 USERNAME = "voluman"
@@ -33,6 +34,13 @@ SCRIPTNAME = 'remote_sm.py'
 LASTIME = time.time()
 
 NO_RESPONSE_TIMEOUT = 2.0  # If no status in 2 seconds, show "NO RESPONSE"
+
+class State(Enum):
+    STILL_RECORDING = 1	
+    VIDEO_RECORDING = 2
+    STANDBY = 3
+
+
 
 class DebugWindow(tk.Toplevel):
     def __init__(self, master, on_close_callback=None):
@@ -91,6 +99,7 @@ class MainWindow:
         self.root.title('VolumanXR - Camera Control UI')
         self.debug_window = None
         self.debug_mode = False
+        self.current_state = State.STANDBY
         
         
 
@@ -113,8 +122,14 @@ class MainWindow:
         self.ip_to_identity = {}
 
         pygame.mixer.init()
-        self.sound = pygame.mixer.Sound(os.path.join(SCRIPT_DIR.parent.parent,  'utils','202741__preilly11__eos-shutter-1.wav'))
-        self.sound_triggered = False
+        self.sound_still_trigger = pygame.mixer.Sound(os.path.join(SCRIPT_DIR.parent.parent,  'utils','202741__preilly11__eos-shutter-1.wav'))
+        self.sound_still_triggered = False
+
+        # TODO: Change sound for video recording
+        self.sound_video_preroll = pygame.mixer.Sound(os.path.join(SCRIPT_DIR.parent.parent,  'utils','202741__preilly11__eos-shutter-1.wav'))
+
+        self.sound_video_trigger = pygame.mixer.Sound(os.path.join(SCRIPT_DIR.parent.parent,  'utils','202741__preilly11__eos-shutter-1.wav'))
+        self.sound_video_triggered = False
 
         self.create_widgets()
         self.start_up()
@@ -188,9 +203,10 @@ class MainWindow:
         self.start_time_label = ttk.Label(session_info_frame, text='N/A')
         self.start_time_label.grid(row=0, column=1, padx=5, pady=5)
         
-        ttk.Label(session_info_frame, text='Countdown:').grid(row=1, column=0, padx=5, pady=5)
-        self.countdown_label = ttk.Label(session_info_frame, text='N/A')
-        self.countdown_label.grid(row=1, column=1, padx=5, pady=5)
+        self.countdown_label = ttk.Label(session_info_frame, text='Countdown:')
+        self.countdown_label.grid(row=1, column=0, padx=5, pady=5)
+        self.countdown_value = ttk.Label(session_info_frame, text='N/A')
+        self.countdown_value.grid(row=1, column=1, padx=5, pady=5)
         
         ttk.Label(session_info_frame, text='Status:').grid(row=2, column=0, padx=5, pady=5)
         self.status_label = ttk.Label(session_info_frame, text='N/A')
@@ -401,7 +417,7 @@ class MainWindow:
         # Example assumes you store the most recent start time in self.current_session_start_time
         # whenever a new recording or still capture is scheduled. (You can set it in `start_recording`
         # or `capture_stills` if you wish.)
-        if hasattr(self, 'current_session_start_time') and self.current_session_start_time:
+        if hasattr(self, 'current_session_start_time') and self.current_session_start_time and self.current_state != State.STANDBY:
             # Show the scheduled start time
             self.start_time_label.config(
                 text=time.strftime('%H:%M:%S', time.localtime(self.current_session_start_time))
@@ -409,19 +425,34 @@ class MainWindow:
             
             # Compute how long until that time
             now = time.time()
-            remaining = self.current_session_start_time - now
-            if remaining > 0:
-                self.countdown_label.config(text=f"{int(remaining)} s")
-                self.sound_triggered = False
+            remaining =  now - self.current_session_start_time
+            if remaining < 0:
+                remaining_second = round(remaining, 1)
+                self.countdown_value.config(text=f"{remaining_second} s")
+                self.sound_still_triggered = False
+                self.sound_video_triggered = False
+                if self.current_state == State.VIDEO_RECORDING:
+                    if remaining_second in [-1,-2,-3] :
+                        self.sound_video_preroll.play()
+                        
             else:
                 # If the time has passed, you could show "0 s" or "Started"
-                self.countdown_label.config(text="0 s")
-                if not self.sound_triggered:
-                    self.sound.play()
-                    self.sound_triggered = True
+                if self.current_state == State.STILL_RECORDING:
+                    self.countdown_value.config(text="0 s")
+                    if not self.sound_still_triggered:
+                        self.sound_still_trigger.play()
+                        self.sound_still_triggered = True
+                        self.current_state = State.STANDBY
+                elif self.current_state == State.VIDEO_RECORDING:
+                    self.countdown_label.config(text='Duration:')
+                    self.countdown_value.config(text=round(remaining, 1))
+                    if not self.sound_video_triggered:
+                        self.sound_video_trigger.play()
+                        self.sound_video_triggered = True
         else:
+            self.countdown_label.config(text='Countdown:')
             self.start_time_label.config(text='N/A')
-            self.countdown_label.config(text='N/A')
+            self.countdown_value.config(text='N/A')
         
         # Determine overall status and update the label & color
         overall_status = self.compute_overall_status()
@@ -548,6 +579,7 @@ class MainWindow:
         return candidate_time
 
     def start_recording(self):
+        self.current_state = State.VIDEO_RECORDING
         session_name = self.session_entry.get()
         bitrate = self.bitrate_entry.get()
         if not session_name:
@@ -576,8 +608,10 @@ class MainWindow:
             message = {'task': 'REC_STOP'}
             self.send_message(ip, message)
         self.log_event('Sent REC_STOP command.')
+        self.current_state = State.STANDBY
 
     def capture_stills(self):
+        self.current_state = State.STILL_RECORDING
         session_name = self.still_name_entry.get()
         if not session_name:
             messagebox.showerror('Error', 'Please enter a session name for the still.')
