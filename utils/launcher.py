@@ -6,6 +6,7 @@ import json
 import paramiko
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+import datetime
 
 # ----------------------------------------------------
 # Configuration
@@ -161,6 +162,8 @@ def upload_script(host, local_script_path):
 # Main
 # ----------------------------------------------------
 def main():
+    # print executed time
+    print("Launcher executed at: ", datetime.datetime.now())
     """
     Possible commands:
       - start <script_name>
