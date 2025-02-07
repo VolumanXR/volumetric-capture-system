@@ -345,7 +345,8 @@ def recording_starter(session_name, bitrate, start_time):
     
     # Save timestamps in realtion to the frames in a json file which is names the same as the recording file
     
-    frame_timestamps = {}
+    frame_timestamps = {}  # Dictionary to store frame timestamps
+    missing_frames = []  # List to store missing frame numbers
     frame_number = 0
     
     while (state == RECORDING):
@@ -366,18 +367,27 @@ def recording_starter(session_name, bitrate, start_time):
                     frame_number = frame_number + 1
                 else:
                     dropped_frames = round(timestamp_interval / frame_time)
-                                        
-                    frame_timestamps[frame_number] = 'dropped'
-                    frame_number = frame_number + 1
 
-                    frame_number = frame_number + dropped_frames-1
+                    # Keep track of missing frame numbers
+                    missing_frames.extend(range(frame_number, frame_number + dropped_frames))
 
+                    # Move frame number forward
+                    frame_number = frame_number+ dropped_frames
+
+                    # Store actual frame timestamp
                     frame_timestamps[frame_number] = metadata["SensorTimestamp"]
                     frame_number = frame_number + 1
         
     picam2.stop_recording()
     # Reconfigure camera in a default video mode
     configure_camera()
+
+    # Insert missing frames after recording
+    for dropped_frame in missing_frames:
+        frame_timestamps[dropped_frame] = 'dropped'
+
+    # Ensure frame numbers are sorted correctly
+    frame_timestamps = dict(sorted(frame_timestamps.items()))
     
     metadata_file = os.path.splitext(recording_file)[0]
     metadata_file = metadata_file + '.json'
