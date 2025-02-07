@@ -115,25 +115,29 @@ class SessionDownloaderApp:
 
         # Action buttons row
         action_frame = ttk.Frame(frame)
-        action_frame.grid(row=2, column=0, columnspan=4, pady=5)
+        action_frame.grid(row=2, column=0, columnspan=4, pady=5, sticky='ew')
 
+        # Download Button - spans 2 rows
         btn_download = ttk.Button(action_frame, text="Download Session", command=self.download_session)
-        btn_download.pack(side="left", padx=5)
+        btn_download.grid(row=0, column=0, rowspan=2, padx=5, pady=2, sticky="ns")
 
+        # Delete Session (Local) and Delete Session (Remote) in one column
         btn_delete_local = ttk.Button(action_frame, text="Delete Session (Local)", command=self.delete_session_local)
-        btn_delete_local.pack(side="left", padx=5)
+        btn_delete_local.grid(row=0, column=1, padx=5, pady=2, sticky="ew")
 
         btn_delete_remote = ttk.Button(action_frame, text="Delete Session (Remote)", command=self.delete_session_remote)
-        btn_delete_remote.pack(side="left", padx=5)
-        
+        btn_delete_remote.grid(row=1, column=1, padx=5, pady=2, sticky="ew")
+
+        # Delete All (Remote) button
         btn_delete_all_remote = ttk.Button(action_frame, text="Delete All (Remote)", command=self.delete_all_sessions_remote)
-        btn_delete_all_remote.pack(side="left", padx=5)
-        
+        btn_delete_all_remote.grid(row=0, column=2, rowspan=2, padx=5, pady=2, sticky="ns")
+
+        # Convert into Frames (Local) and Open Local Folder in one column
         btn_convert_into_frames_local = ttk.Button(action_frame, text="Convert into Frames (Local)", command=self.convert_into_frames_local)
-        btn_convert_into_frames_local.pack(side="left", padx=5)
+        btn_convert_into_frames_local.grid(row=0, column=3, padx=5, pady=2, sticky="ew")
 
         btn_open_folder = ttk.Button(action_frame, text="Open Local Folder", command=self.open_local_sessions_folder)
-        btn_open_folder.pack(side="left", padx=5)
+        btn_open_folder.grid(row=1, column=3, padx=5, pady=2, sticky="ew")
 
         # Progress Frame
         progress_frame = ttk.LabelFrame(self.master, text="Progress")
