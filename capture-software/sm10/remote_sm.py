@@ -353,18 +353,24 @@ def recording_starter(session_name, bitrate, start_time):
         
         if ("SensorTimestamp" in metadata and metadata is not None):
             # last entry of frame_timestamps
-            lastSensorTimestamp = frame_timestamps.get(frame_number-1, 0)
-            if abs(lastSensorTimestamp - metadata["SensorTimestamp"]) < (1/fps) * 1.1:
+            lastSensorTimestamp = frame_timestamps.get(frame_number-1, None)
+            if lastSensorTimestamp is None:
                 frame_timestamps[frame_number] = metadata["SensorTimestamp"]
                 frame_number = frame_number + 1
             else:
-                time_interval = abs(lastSensorTimestamp - metadata["SensorTimestamp"])
-                dropped_frames = round(time_interval / (1/fps))
-                for i in range(dropped_frames):
-                    frame_timestamps[frame_number] = 'dropped'
+                frame_time = 1/fps
+                timestamp_interval = (abs(lastSensorTimestamp - metadata["SensorTimestamp"]))/1e9
+                
+                if timestamp_interval < (frame_time * 1.1):
+                    frame_timestamps[frame_number] = metadata["SensorTimestamp"]
                     frame_number = frame_number + 1
+                else:
+                    dropped_frames = round(timestamp_interval / frame_time)
+                    for i in range(dropped_frames):
+                        frame_timestamps[frame_number] = 'dropped'
+                        frame_number = frame_number + 1
         
-        time.sleep(1/(2*fps))
+        # time.sleep(1/fps)
     
     metadata_file = os.path.splitext(recording_file)[0]
     metadata_file = metadata_file + '.json'
