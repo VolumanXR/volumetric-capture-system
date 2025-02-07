@@ -126,9 +126,13 @@ class MainWindow:
         self.sound_still_triggered = False
 
         # TODO: Change sound for video recording
-        self.sound_video_preroll = pygame.mixer.Sound(os.path.join(SCRIPT_DIR.parent.parent,  'utils','202741__preilly11__eos-shutter-1.wav'))
+        self.sound_video_preroll = pygame.mixer.Sound(os.path.join(SCRIPT_DIR.parent.parent,  'utils','short_beep.wav'))
 
-        self.sound_video_trigger = pygame.mixer.Sound(os.path.join(SCRIPT_DIR.parent.parent,  'utils','202741__preilly11__eos-shutter-1.wav'))
+        self.sound_video_preroll_triggerd_3 = False
+        self.sound_video_preroll_triggerd_2 = False
+        self.sound_video_preroll_triggerd_1 = False
+
+        self.sound_video_trigger = pygame.mixer.Sound(os.path.join(SCRIPT_DIR.parent.parent,  'utils','long_beep.wav'))
         self.sound_video_triggered = False
 
         self.create_widgets()
@@ -435,10 +439,20 @@ class MainWindow:
                 self.countdown_value.config(text=f"{remaining_second} s")
                 self.sound_still_triggered = False
                 self.sound_video_triggered = False
+                # TODO: Fix missing beeps after repeated rec start
                 if self.current_state == State.VIDEO_RECORDING:
-                    if remaining_second in [-1,-2,-3] :
+                    if remaining_second > -3 and not self.sound_video_preroll_triggerd_3:
                         self.sound_video_preroll.play()
-                        
+                        self.sound_video_preroll_triggerd_3 = True
+                        print('Preroll Beep -3')
+                    if remaining_second > -2 and not self.sound_video_preroll_triggerd_2:
+                        self.sound_video_preroll.play()
+                        self.sound_video_preroll_triggerd_2 = True
+                        print('Preroll Beep -2')
+                    if remaining_second > -1 and not self.sound_video_preroll_triggerd_1:
+                        self.sound_video_preroll.play()
+                        self.sound_video_preroll_triggerd_1 = True
+                        print('Preroll Beep -1')
             else:
                 # If the time has passed, you could show "0 s" or "Started"
                 if self.current_state == State.STILL_RECORDING:
@@ -453,10 +467,14 @@ class MainWindow:
                     if not self.sound_video_triggered:
                         self.sound_video_trigger.play()
                         self.sound_video_triggered = True
+
         else:
             self.countdown_label.config(text='Countdown:')
             self.start_time_label.config(text='N/A')
             self.countdown_value.config(text='N/A')
+            self.sound_video_preroll_triggerd_3: False
+            self.sound_video_preroll_triggerd_2: False
+            self.sound_video_preroll_triggerd_1: False
         
         # Determine overall status and update the label & color
         overall_status = self.compute_overall_status()
@@ -613,6 +631,9 @@ class MainWindow:
             self.send_message(ip, message)
         self.log_event('Sent REC_STOP command.')
         self.current_state = State.STANDBY
+        self.sound_video_preroll_triggerd_3: False
+        self.sound_video_preroll_triggerd_2: False
+        self.sound_video_preroll_triggerd_1: False
 
     def capture_stills(self):
         self.current_state = State.STILL_RECORDING
