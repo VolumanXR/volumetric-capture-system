@@ -1,4 +1,4 @@
-# remote_sm.py v10.8
+# remote_sm.py v10.9
 
 import os
 import time
@@ -28,7 +28,13 @@ def get_master_ip_address():
         return sys.argv[1]
     return '10.50.100.2'
 
+def get_custom_lens_position():
+    if len(sys.argv) > 2:
+        return sys.argv[2]
+    return None
+
 MASTER_PC_IP = get_master_ip_address()
+CUSTOM_LENS_POSITION = get_custom_lens_position()
 
 # Decide MASTER_PC_IP based on our IP
 def get_ip_address():
@@ -150,15 +156,19 @@ def apply_settings(settings):
     else:
         controls["AwbEnable"] = True
         controls["AwbMode"]= getattr(libcontrols.AwbModeEnum, wb_selection, 0) # 0 = 'Auto'
-
-
     
     if settings.get('af_mode', 'manual') == 'auto':
         controls["AfMode"] = 2
     else:
         controls["AfMode"] = 0
-    controls["LensPosition"] = settings.get('lens_position', 0.36)
-
+        
+    if CUSTOM_LENS_POSITION is not None:
+        controls["LensPosition"] = float(CUSTOM_LENS_POSITION)
+        log_event(f"Using custom lens position: {controls['LensPosition']}")
+    else:
+        controls["LensPosition"] = settings.get('lens_position', 0.36)
+        log_event(f"Using default lens position: {controls['LensPosition']}")
+        
     try:
         picam2.set_controls(controls)
     except Exception as e:
