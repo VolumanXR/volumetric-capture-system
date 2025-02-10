@@ -1,4 +1,4 @@
-# master_controller.py v10.6
+# master_controller.py v10.8
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -19,17 +19,21 @@ import subprocess
 import re
 import pygame
 from enum import Enum
+import sys
+from PIL import Image, ImageTk
 
 # Configuration
 USERNAME = "voluman"
 PASSWORD = "xr"
 SCRIPT_DIR = Path(__file__).resolve().parent
-CAMERA_LIST_FILE = os.path.join(SCRIPT_DIR.parent.parent,  'utils','camera_list.json')
+UTILS_FOLDER = os.path.join(SCRIPT_DIR.parent.parent, 'utils')
+CAMERA_LIST_FILE = os.path.join(UTILS_FOLDER,'camera_list.json')
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
 MASTER_PC_IP = '0.0.0.0'  # Bind to all interfaces
 MASTER_PC_PORT = 50005
 SCRIPTNAME = 'remote_sm.py'
+ICON_PATH = os.path.join(UTILS_FOLDER, "Voluman_Icon.ico")
 
 LASTIME = time.time()
 
@@ -101,7 +105,8 @@ class MainWindow:
         self.debug_mode = False
         self.current_state = State.STANDBY
         
-        
+        if os.path.exists(ICON_PATH):
+            root.iconbitmap(ICON_PATH)
 
         self.cameras = []         # Loaded from camera_list.json
         self.camera_status = {}   # ip -> { 'state', 'last_seen', 'storage_remaining_mb', 'sessions', ... }
@@ -661,7 +666,7 @@ class MainWindow:
 
     def start_up(self):
         update_dist_time()
-        start_remote_hosts()
+        start_remote_hosts(self.root)
 
     def on_close(self):
         stop_remote_hosts()
@@ -743,7 +748,7 @@ def get_ip_address_in_network(target_network="10.50.100.0/24"):
     
     return None
 
-def start_remote_hosts():
+def start_remote_hosts(root):
     alert_window = show_starting_alert()
     # Load the camera list
     cameras = load_camera_list(CAMERA_LIST_FILE)
@@ -754,52 +759,108 @@ def start_remote_hosts():
     # Start the script on each camera
     with ThreadPoolExecutor(max_workers=workers) as executor:
         for cam in cameras:
-            host_ip = cam["ip"]
-            executor.submit(start_script, host_ip, master_voluman_net_ip)
+            host_ip = cam.get("ip")
+            custom_lens_position = cam.get("lens_position", None)
+            executor.submit(start_script, host_ip, master_voluman_net_ip, custom_lens_position)
             
     alert_window.destroy()
+    root.lift()
+    root.focus_force()
             
 def show_starting_alert():
     alert = tk.Toplevel()
-    alert.title("Starting Scripts")  # Fenstertitel setzen
+    alert.overrideredirect(True)
+    alert.title("Starting Scripts")
     alert.attributes("-topmost", True)
-
+    
+    # Set background color of the alert window
+    background_color = "#EEEEEE"  # Light blue; change as desired
+    alert.configure(bg=background_color)
+    
+    # Set the window icon if available.
+    if os.path.exists(ICON_PATH):
+        alert.iconbitmap(ICON_PATH)
+    
+    # Increase window height to accommodate the logo and text.
     window_width = 300
-    window_height = 60
-
-    # Bildschirmgröße ermitteln
+    window_height = 400
     screen_width = alert.winfo_screenwidth()
     screen_height = alert.winfo_screenheight()
-
-    # Position berechnen, um das Fenster zu zentrieren
     x = (screen_width // 2) - (window_width // 2)
     y = (screen_height // 2) - (window_height // 2)
-    alert.geometry(f"{window_width}x{window_height}+{x}+{y}")  # Größe und Position setzen
-
+    alert.geometry(f"{window_width}x{window_height}+{x}+{y}")
+    
+    logo_path = os.path.join(UTILS_FOLDER, "Voluman_Logo.png")
+    
+    if os.path.exists(logo_path):
+        # Open the image using Pillow
+        img = Image.open(logo_path)
+        # Calculate maximum dimensions for the logo.
+        # Here we allow the logo to use up to 80% of the window's width and 60% of its height.
+        max_logo_width = int(window_width * 0.8)
+        max_logo_height = int(window_height * 0.8)
+        img.thumbnail((max_logo_width, max_logo_height), Image.Resampling.LANCZOS)
+        logo_img = ImageTk.PhotoImage(img)
+        logo_label = tk.Label(alert, image=logo_img)
+        logo_label.image = logo_img  # Keep a reference to avoid garbage collection.
+        logo_label.pack(side="top", pady=10)
+    else:
+        # If no logo is available, add a spacer.
+        tk.Label(alert, text="").pack(side="top", pady=10)
+    
+    # Create the alert text label and pack it beneath the logo.
     label = tk.Label(alert, text="Starting Scripts on Raspberry Pi's...")
-    label.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+    label.pack(side="bottom", expand=True, fill=tk.BOTH, padx=20, pady=10)
+    
     alert.update()
     return alert
 
+
 def show_stopping_alert():
     alert = tk.Toplevel()
-    alert.title("Stopping Scripts")  # Fenstertitel setzen
+    alert.overrideredirect(True)
+    alert.title("Stopping Scripts")
     alert.attributes("-topmost", True)
-
+    
+    # Set background color of the alert window
+    background_color = "#EEEEEE"  # Light blue; change as desired
+    alert.configure(bg=background_color)
+    
+    # Set the window icon if available.
+    if os.path.exists(ICON_PATH):
+        alert.iconbitmap(ICON_PATH)
+    
+    # Increase window height to accommodate the logo and text.
     window_width = 300
-    window_height = 60
-
-    # Bildschirmgröße ermitteln
+    window_height = 400
     screen_width = alert.winfo_screenwidth()
     screen_height = alert.winfo_screenheight()
-
-    # Position berechnen, um das Fenster zu zentrieren
     x = (screen_width // 2) - (window_width // 2)
     y = (screen_height // 2) - (window_height // 2)
-    alert.geometry(f"{window_width}x{window_height}+{x}+{y}")  # Größe und Position setzen
-
+    alert.geometry(f"{window_width}x{window_height}+{x}+{y}")
+    
+    logo_path = os.path.join(UTILS_FOLDER, "Voluman_Logo.png")
+    
+    if os.path.exists(logo_path):
+        # Open the image using Pillow
+        img = Image.open(logo_path)
+        # Calculate maximum dimensions for the logo.
+        # Here we allow the logo to use up to 80% of the window's width and 60% of its height.
+        max_logo_width = int(window_width * 0.8)
+        max_logo_height = int(window_height * 0.8)
+        img.thumbnail((max_logo_width, max_logo_height), Image.Resampling.LANCZOS)
+        logo_img = ImageTk.PhotoImage(img)
+        logo_label = tk.Label(alert, image=logo_img)
+        logo_label.image = logo_img  # Keep a reference to avoid garbage collection.
+        logo_label.pack(side="top", pady=10)
+    else:
+        # If no logo is available, add a spacer.
+        tk.Label(alert, text="").pack(side="top", pady=10)
+    
+    # Create the alert text label and pack it beneath the logo.
     label = tk.Label(alert, text="Stopping Scripts on Raspberry Pi's...")
-    label.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+    label.pack(side="bottom", expand=True, fill=tk.BOTH, padx=20, pady=10)
+    
     alert.update()
     return alert
 
@@ -850,7 +911,7 @@ def connect_ssh(host):
     ssh.connect(hostname=host, username=USERNAME, password=PASSWORD, timeout=5)
     return ssh
 
-def start_script(host, master_voluman_net_ip):
+def start_script(host, master_voluman_net_ip, custom_lens_position):
 
     """
     Start the script on the Pi in the background (nohup).
@@ -859,7 +920,7 @@ def start_script(host, master_voluman_net_ip):
     try:
         ssh = connect_ssh(host)
         cmd = (
-            f"nohup python3 /home/voluman/{SCRIPTNAME} {master_voluman_net_ip}"
+            f"nohup python3 /home/voluman/{SCRIPTNAME} {master_voluman_net_ip} {custom_lens_position}"
             f"> /home/voluman/{SCRIPTNAME}.log 2>&1 &"
         )
         _, err = ssh_command(ssh, cmd)
@@ -897,5 +958,6 @@ if __name__ == '__main__':
     root = tk.Tk()
     app = MainWindow(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
+    
     #app.update_status_tree_all()
     root.mainloop()
