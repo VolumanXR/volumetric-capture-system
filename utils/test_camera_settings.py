@@ -1,6 +1,7 @@
 from picamera2 import Picamera2
 from libcamera import controls
 import time
+import socket
 
 # Initialize the camera
 picam2 = Picamera2()
@@ -12,7 +13,7 @@ picam2.configure(config)
 # Start the camera
 picam2.start()
 picam2.options["quality"] = 100
-time.sleep(5)  # Allow camera to warm up
+# time.sleep(5)  # Allow camera to warm up
 
 # Function to update camera settings
 def update_settings(exposure=None, gain=None, awb_mode=None, resolution=None, focus=None):
@@ -41,19 +42,28 @@ def update_settings(exposure=None, gain=None, awb_mode=None, resolution=None, fo
         picam2.set_controls({"AfMode": controls.AfModeEnum.Manual, "LensPosition": focus})	
     print("Settings updated")
 
-
+def get_ip_suffix():
+    """
+    Ermittelt den Suffix (letzten zwei Ziffern) der IP-Adresse des aktuellen Geräts.
+    """
+    ip = socket.gethostbyname(socket.gethostname())
+    last_octet = ip.split('.')[-1]
+    return last_octet[-2:] if len(last_octet) >= 2 else last_octet
 
 # Example settings to test
 test_settings = [
-    {"resolution": (1920, 1080), "awb_mode": "Daylight", "exposure": 100, "gain": 1.4, "focus": 0.36}, # min_gain = 1.1228070259094238
-    {"resolution": (1920*2, 1080*2), "awb_mode": "Daylight", "exposure": 50, "gain": 1.4, "focus": 0.36},
-    {"resolution": (1920*2, 1080*2), "awb_mode": "Daylight", "exposure": 50*2, "gain": 1.4*2, "focus": 0.36},
-    {"resolution": (1920*2, 1080*2), "awb_mode": "Daylight", "exposure": 50*3, "gain": 1.4*3, "focus": 0.36},
-    {"resolution": (1920*2, 1080*2), "awb_mode": "Daylight", "exposure": 50*4, "gain": 1.4*4, "focus": 0.36}
+    # {"resolution": (1920, 1080), "awb_mode": "Daylight", "exposure": 100, "gain": 1.4, "focus": 0.36}, # min_gain = 1.1228070259094238
+    {"resolution": (1920*2, 1080*2), "awb_mode": "Daylight", "exposure": 50, "gain": 1.4, "focus": 0.15},
+    {"resolution": (1920*2, 1080*2), "awb_mode": "Daylight", "exposure": 50, "gain": 1.4, "focus": 0.20},
+    {"resolution": (1920*2, 1080*2), "awb_mode": "Daylight", "exposure": 50, "gain": 1.4, "focus": 0.35},
+    {"resolution": (1920*2, 1080*2), "awb_mode": "Daylight", "exposure": 50, "gain": 1.4, "focus": 0.40},
+    {"resolution": (1920*2, 1080*2), "awb_mode": "Daylight", "exposure": 50, "gain": 1.4, "focus": 0.45}
     # {"resolution": (1920*2, 1080*2), "awb_mode": "Daylight", "exposure": 100, "gain": 1.2}
     # {"resolution": (1920, 1080), "awb_mode": "Daylight", "exposure": 30, "gain": 1.2},
     # {"resolution": (1920, 1080), "awb_mode": "Daylight", "exposure": 15, "gain": 1.2}
 ]
+
+ip_suffix = get_ip_suffix()
 
 # Apply settings and capture a test image
 for i, settings in enumerate(test_settings):
@@ -63,7 +73,8 @@ for i, settings in enumerate(test_settings):
     config = picam2.stream_configuration("main")
     width, height = config["size"]
     print(f"Resolution: {width}x{height}")
-    filename = f"test_image_{i+1}.jpg"
+    # Füge den Suffix der IP-Adresse an den Dateinamen an
+    filename = f"test_image_{i+1}_{ip_suffix}.jpg"
     # picam2.set_controls({"AfTrigger": controls.AfTriggerEnum.Start})
     # time.sleep(2)
     lens_position = picam2.capture_metadata()['LensPosition']
