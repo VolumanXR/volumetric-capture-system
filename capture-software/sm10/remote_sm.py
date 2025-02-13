@@ -1,4 +1,4 @@
-# remote_sm.py v10.9
+# remote_sm.py v10.10
 
 import os
 import time
@@ -230,7 +230,7 @@ def get_session_list():
     sorted_files = sorted(files_with_mtime, key=lambda x: x[1], reverse=True)
     latest_files = []
     for f, _ in sorted_files[:3]:
-        base = f.split('_')[0]
+        base = f.rsplit('_', 1)[0]
         if f.endswith('.jpg'):
             base = f"[I] {base}"
         elif f.endswith('.mp4'):
