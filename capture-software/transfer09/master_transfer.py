@@ -51,7 +51,7 @@ class SessionDownloaderApp:
         self.create_widgets()
         self.create_menubar()  # <-- Add the menubar to the main window
 
-        start_remote_hosts()
+        start_remote_hosts(self.master)
         os.makedirs(SESSIONS_FOLDER, exist_ok=True)
 
         # Kick off initial retrieval
@@ -748,7 +748,7 @@ class SessionDownloaderApp:
         s = round(size_bytes / p, 2)
         return f"{s} {size_name[i]}"
 
-def start_remote_hosts():
+def start_remote_hosts(master):
     alert_window = show_starting_alert()
     # Load the camera list
     cameras = load_camera_list(CAMERA_LIST_FILE)
@@ -762,6 +762,8 @@ def start_remote_hosts():
             executor.submit(start_script, host_ip)
 
     alert_window.destroy()
+    master.lift()
+    master.focus_force()
             
 def show_starting_alert():
     alert = tk.Toplevel()
