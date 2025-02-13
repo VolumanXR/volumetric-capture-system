@@ -40,7 +40,8 @@ CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.json")
 
 REFRESH_INTERVAL_MS = 60000
 cpu_cores = os.cpu_count()
-MAX_SIMULTANEOUS_DOWNLOADS = cpu_cores * 2
+MAX_NORMAL_WORKERS = cpu_cores * 2
+MAX_DOWNLOAD_WORKERS = 1
 # MAX_SIMULTANEOUS_DOWNLOADS = 10
 
 SCRIPTNAME = 'remote_transfer.py'
@@ -84,7 +85,7 @@ class SessionDownloaderApp:
         self.download_start_time = 0
         self.download_lock = threading.Lock()
 
-        self.create_menubar()  # Create the menu bar
+        # self.create_menubar()  # Create the menu bar
         self.create_widgets()  # Create all the UI widgets
 
         start_remote_hosts(self.master)
@@ -272,7 +273,7 @@ class SessionDownloaderApp:
         t.start()
 
     def get_sessions_thread(self):
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=MAX_NORMAL_WORKERS) as executor:
             future_sessions = {executor.submit(self.query_sessions_udp, cam["ip"]): cam for cam in CAMERA_LIST}
             all_sessions = set()
             for fut in future_sessions:
@@ -285,7 +286,7 @@ class SessionDownloaderApp:
         new_session_info = {}
         for s in sorted_sessions:
             new_session_info[s] = {"clip_sizes": {}}
-            with ThreadPoolExecutor(max_workers=5) as executor2:
+            with ThreadPoolExecutor(max_workers=MAX_NORMAL_WORKERS) as executor2:
                 size_futures = {executor2.submit(self.query_session_size, cam["ip"], s): cam for cam in CAMERA_LIST}
                 for fut in size_futures:
                     cam = size_futures[fut]
@@ -432,7 +433,7 @@ class SessionDownloaderApp:
         os.makedirs(folder, exist_ok=True)
 
         def do_downloads():
-            with ThreadPoolExecutor(max_workers=MAX_SIMULTANEOUS_DOWNLOADS) as executor:
+            with ThreadPoolExecutor(max_workers=MAX_DOWNLOAD_WORKERS) as executor:
                 futures = []
                 for (cam, sz) in cams_with_data:
                     ip = self.get_ip_from_camera_name(cam)
@@ -738,9 +739,7 @@ class SessionDownloaderApp:
 def start_remote_hosts(master):
     alert_window = show_starting_alert()
     cameras = load_camera_list(CAMERA_LIST_FILE)
-    cpu_cores = os.cpu_count()
-    workers = cpu_cores * 2
-    with ThreadPoolExecutor(max_workers=workers) as executor:
+    with ThreadPoolExecutor(max_workers=MAX_NORMAL_WORKERS) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(start_script, host_ip)
@@ -850,9 +849,7 @@ def show_stopping_alert():
 def stop_remote_hosts():
     alert_window = show_stopping_alert()
     cameras = load_camera_list(CAMERA_LIST_FILE)
-    cpu_cores = os.cpu_count()
-    workers = cpu_cores * 2
-    with ThreadPoolExecutor(max_workers=workers) as executor:
+    with ThreadPoolExecutor(max_workers=MAX_NORMAL_WORKERS) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(stop_script, host_ip)
