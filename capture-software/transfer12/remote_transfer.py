@@ -10,8 +10,8 @@ import zmq
 
 # Configuration
 UDP_IP = "0.0.0.0"       # Listen on all interfaces for UDP
-UDP_PORT = 50005
-TCP_PORT = 50006         # ZeroMQ server will bind here (replacing the old TCP server)
+UDP_PORT = 50006
+TCP_PORT = 50007        # ZeroMQ server will bind here (replacing the old TCP server)
 RECORDINGS_FOLDER = "Recordings"  # Update this path as needed
 
 # Supported file extensions for a session.

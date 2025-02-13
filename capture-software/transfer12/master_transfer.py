@@ -32,8 +32,8 @@ with open(CAMERA_LIST_FILE, 'r') as f:
 ICON_PATH = os.path.join(UTILS_FOLDER, "Voluman_Icon.ico")
 
 
-UDP_PORT = 50005
-TCP_PORT = 50006  # This port is now used by the zmq REP server on the remote side
+UDP_PORT = 50006
+TCP_PORT = 50007  # This port is now used by the zmq REP server on the remote side
 
 # Default sessions folder and configuration file.
 DEFAULT_SESSIONS_FOLDER = os.path.join(SCRIPT_DIR, "Sessions")
