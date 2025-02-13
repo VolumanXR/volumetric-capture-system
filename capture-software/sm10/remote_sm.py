@@ -420,9 +420,9 @@ def ffmpeg_processing():
         'ffmpeg',
         '-y',  # Overwrite output file if it exists
         '-f', 'h264',  # Input format
-        '-i', recording_file,  # Input from stdin
         '-r', str(fps),  # Output frame rate
-        '-c', 'copy',  # Copy codec (no re-encoding)
+        '-i', recording_file,  # Input from stdin
+        '-c:v', 'copy',  # Copy codec (no re-encoding)
         '-timecode', timecode,  # Set starting timecode
         recording_file_name  # Output file
     ]

@@ -46,7 +46,7 @@ def check_intervals(json_data, tolerance=1):
     return mean_interval, max_deviation, inconsistent_count, inconsistent_indices.tolist(), consistent
 
 # Load JSON from a file
-with open('hardware-capture\\utils\\Timestamp12_116.json', 'r') as f:
+with open('hardware-capture\\capture-software\\transfer09\\Sessions\\Abc04\\Abc04_116.json', 'r') as f:
     data = json.load(f)
 
 # Run the check
