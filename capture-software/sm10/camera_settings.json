@@ -1,8 +1,8 @@
 {
     "width": 1920,
     "height": 1080,
-    "frame_rate": 25,
-    "shutter_angle": 20,
+    "frame_rate": 30,
+    "shutter_angle": 24,
     "iso": 560,
     "brightness": 0,
     "contrast": 100,
