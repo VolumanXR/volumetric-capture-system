@@ -1,4 +1,4 @@
-# master_transfer.py v12_modified (with ZeroMQ integration and Offline Mode support)
+# master_transfer.py v13.1
 import tkinter as tk
 from tkinter import ttk, messagebox, Menu, filedialog
 import socket
@@ -661,20 +661,13 @@ class SessionDownloaderApp:
 
         global_digits = len(str(global_max_frame_index))
 
-        with ThreadPoolExecutor(max_workers=MAX_CONVERSION_WORKERS) as executor:
-            futures = []
-            for file in os.listdir(session_folder):
-                if file.lower().endswith(".mp4"):
-                    future = executor.submit(
-                        self.convert_video_into_frames,
-                        session_name=session_name,
-                        video_file=file,
-                        global_digits=global_digits
-                    )
-                    futures.append(future)
-            # Optional: Warten auf alle Threads, wenn erforderlich
-            for future in futures:
-                future.result()
+        for file in os.listdir(session_folder):
+            if file.lower().endswith(".mp4"):
+                self.convert_video_into_frames(
+                    session_name=session_name,
+                    video_file=file,
+                    global_digits=global_digits
+                )
 
     def convert_video_into_frames(self, session_name, video_file, global_digits):
         session_folder = os.path.join(self.sessions_folder, session_name)
