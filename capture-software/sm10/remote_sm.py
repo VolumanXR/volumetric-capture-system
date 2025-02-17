@@ -1,4 +1,4 @@
-# remote_sm.py v10.10
+# remote_sm.py v10.11
 
 import os
 import time
@@ -312,10 +312,6 @@ def recording_starter(session_name, bitrate, start_time):
         'start_time': start_time
     }
     send_message(ack_msg)
-
-    # wait_time = start_time - time.time()
-    # if wait_time > 0:
-    #    time.sleep(wait_time)
     
     
     # Actual start of recording
@@ -323,16 +319,10 @@ def recording_starter(session_name, bitrate, start_time):
     recording_file = os.path.join(STORAGE_PATH, f'{session_name}_{ip_suffix}.h264')
     picam2.stop()
     
-    ### Doppelt 
-    # width = default_settings['width']
-    # height = default_settings['height']
+    configure_camera()
+    
     global fps
     fps = default_settings['frame_rate']
-    # video_config = picam2.create_video_configuration(main={"size": (width, height)})
-    # picam2.configure(video_config)
-
-    # # picam2.start()
-    # apply_settings(default_settings)
 
     # We can set a new encoder
     local_encoder = H264Encoder(int(bitrate) * 1000000)
@@ -389,8 +379,6 @@ def recording_starter(session_name, bitrate, start_time):
                     frame_number = frame_number + 1
         
     picam2.stop_recording()
-    # Reconfigure camera in a default video mode
-    configure_camera()
 
     # Insert missing frames after recording
     for dropped_frame in missing_frames:

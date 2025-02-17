@@ -1,4 +1,4 @@
-# master_controller.py v10.8
+# master_controller.py v10.9
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -175,7 +175,7 @@ class MainWindow:
         self.session_entry = ttk.Entry(session_frame)
         self.session_entry.grid(row=0, column=1, padx=5, pady=5)
 
-        ttk.Label(session_frame, text='Bitrate (Kbps):').grid(row=1, column=0, padx=5, pady=5)
+        ttk.Label(session_frame, text='Bitrate (Mbps):').grid(row=1, column=0, padx=5, pady=5)
         self.bitrate_entry = ttk.Entry(session_frame)
         self.bitrate_entry.insert(0, '15')
         self.bitrate_entry.grid(row=1, column=1, padx=5, pady=5)
