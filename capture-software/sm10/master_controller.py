@@ -477,9 +477,9 @@ class MainWindow:
             self.countdown_label.config(text='Countdown:')
             self.start_time_label.config(text='N/A')
             self.countdown_value.config(text='N/A')
-            self.sound_video_preroll_triggerd_3: False
-            self.sound_video_preroll_triggerd_2: False
-            self.sound_video_preroll_triggerd_1: False
+            self.sound_video_preroll_triggerd_3 = False
+            self.sound_video_preroll_triggerd_2 = False
+            self.sound_video_preroll_triggerd_1 = False
         
         # Determine overall status and update the label & color
         overall_status = self.compute_overall_status()
@@ -636,9 +636,9 @@ class MainWindow:
             self.send_message(ip, message)
         self.log_event('Sent REC_STOP command.')
         self.current_state = State.STANDBY
-        self.sound_video_preroll_triggerd_3: False
-        self.sound_video_preroll_triggerd_2: False
-        self.sound_video_preroll_triggerd_1: False
+        self.sound_video_preroll_triggerd_3 = False
+        self.sound_video_preroll_triggerd_2 = False
+        self.sound_video_preroll_triggerd_1 = False
 
     def capture_stills(self):
         self.current_state = State.STILL_RECORDING
