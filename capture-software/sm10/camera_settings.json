@@ -1,9 +1,9 @@
 {
     "width": 1920,
     "height": 1080,
-    "frame_rate": 30,
-    "shutter_angle": 24,
-    "iso": 560,
+    "frame_rate": 25,
+    "shutter_angle": 20,
+    "iso": 864,
     "brightness": 0,
     "contrast": 100,
     "saturation": 95,
@@ -11,11 +11,11 @@
     "auto_exposure": false,
     "flicker_control": "Off",
     "flicker_period": 50,
-    "white_balance": "Daylight",
+    "white_balance": "Manual",
     "red_gain": 1.1,
     "blue_gain": 2.5,
     "preview_resolution": "720p",
-    "selected_camera_id": "32",
+    "selected_camera_id": "15",
     "af_mode": "manual",
-    "lens_position": 0.36
+    "lens_position": 0.58
 }

@@ -11,7 +11,7 @@
     "auto_exposure": false,
     "flicker_control": "Off",
     "flicker_period": 50,
-    "white_balance": "Auto",
+    "white_balance": "Manual",
     "red_gain": 1.1,
     "blue_gain": 2.5,
     "preview_resolution": "720p",
