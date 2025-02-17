@@ -1,4 +1,4 @@
-# remote_sm.py v10.11
+# remote_sm.py v10.12
 
 import os
 import time
@@ -305,6 +305,9 @@ def recording_starter(session_name, bitrate, start_time):
     state = PREPARING
     log_event("Preparing to start recording.")
 
+    picam2.stop()
+    configure_camera()
+
     # Acknowledge to Master that we received the start_time correctly
     ack_msg = {
         'task': 'REC_START_ACK',
@@ -318,8 +321,6 @@ def recording_starter(session_name, bitrate, start_time):
     ip_suffix = my_ip.split('.')[-1]
     recording_file = os.path.join(STORAGE_PATH, f'{session_name}_{ip_suffix}.h264')
     picam2.stop()
-    
-    configure_camera()
     
     global fps
     fps = default_settings['frame_rate']
