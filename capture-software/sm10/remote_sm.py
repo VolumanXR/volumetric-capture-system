@@ -140,19 +140,19 @@ def apply_settings(settings):
         controls["AnalogueGain"] = iso_value / 100.0
 
     wb_selection = settings.get('white_balance', 'Auto')
-    if wb_selection and wb_selection == 'Custom':
+    if wb_selection and wb_selection in ['Manual', '3200K', '4400K', '5600K']:
         controls["AwbEnable"] = False
-        # if wb_selection == 'Manual':
-        #     red_gain = float(settings.get('red_gain', 1.0))
-        #     blue_gain = float(settings.get('blue_gain', 1.0))
-        #     controls["ColourGains"] = (red_gain, blue_gain)
-        # else:
-        if wb_selection == '3200K':
-            controls["ColourGains"] = (2.3, 1.3)
-        elif wb_selection == '4400K':
-            controls["ColourGains"] = (1.8, 1.5)
-        elif wb_selection == '5600K':
-            controls["ColourGains"] = (1.5, 1.8)
+        if wb_selection == 'Manual':
+            red_gain = float(settings.get('red_gain', 1.0))
+            blue_gain = float(settings.get('blue_gain', 1.0))
+            controls["ColourGains"] = (red_gain, blue_gain)
+        else:
+            if wb_selection == '3200K':
+                controls["ColourGains"] = (2.3, 1.3)
+            elif wb_selection == '4400K':
+                controls["ColourGains"] = (1.8, 1.5)
+            elif wb_selection == '5600K':
+                controls["ColourGains"] = (1.5, 1.8)
     else:
         controls["AwbEnable"] = True
         controls["AwbMode"]= getattr(libcontrols.AwbModeEnum, wb_selection, 0) # 0 = 'Auto'

@@ -351,7 +351,7 @@ class MasterCameraController:
         wb_label.pack(anchor='w', padx=5, pady=5)
 
         self.wb_var = tk.StringVar(value=self.settings.get('white_balance', 'Auto'))
-        wb_options = ['Auto', '3200K', '4400K', '5600K', 'Manual']
+        wb_options = ['Auto','Incandescent', 'Tungsten', 'Flourescent', 'Indoor', 'Daylight', 'Cloudy', '3200K', '4400K', '5600K', 'Manual']
 
         def wb_selection_changed(value):
             self.update_controls()

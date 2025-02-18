@@ -1,4 +1,4 @@
-# remote_camera_controller.py - v09
+# remote_camera_controller.py - v10
 
 import os
 import json
@@ -8,6 +8,8 @@ from picamera2 import Picamera2
 import cv2
 import time
 import psutil  # Added for CPU monitoring
+
+from libcamera import controls as libcontrols
 
 # Configure Logging
 logging.basicConfig(level=logging.DEBUG,
@@ -100,22 +102,22 @@ def apply_settings(settings):
 
     # Handle White Balance
     wb_selection = settings.get('white_balance', 'Auto')
-    if wb_selection == 'Auto':
-        controls["AwbEnable"] = True
-    else:
+    if wb_selection and wb_selection in ['Manual', '3200K', '4400K', '5600K']:
         controls["AwbEnable"] = False
         if wb_selection == 'Manual':
             red_gain = float(settings.get('red_gain', 1.0))
             blue_gain = float(settings.get('blue_gain', 1.0))
             controls["ColourGains"] = (red_gain, blue_gain)
         else:
-            # Set 'ColourGains' based on selected white balance
             if wb_selection == '3200K':
                 controls["ColourGains"] = (2.3, 1.3)
             elif wb_selection == '4400K':
                 controls["ColourGains"] = (1.8, 1.5)
             elif wb_selection == '5600K':
                 controls["ColourGains"] = (1.5, 1.8)
+    else:
+        controls["AwbEnable"] = True
+        controls["AwbMode"]= getattr(libcontrols.AwbModeEnum, wb_selection, 0) # 0 = 'Auto'
         
     if settings.get('af_mode', 'manual') == 'auto':
         controls["AfMode"] = 2
