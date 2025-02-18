@@ -31,7 +31,7 @@
     {"name": "CAM29", "ip": "10.50.100.129", "lens_position": 0.4},
     {"name": "CAM30", "ip": "10.50.100.130", "lens_position": 0.05},
     {"name": "CAM31", "ip": "10.50.100.131", "lens_position": 0.4},
-    {"name": "CAM32", "ip": "10.50.100.132", "lens_position":0.2},
+    {"name": "CAM32", "ip": "10.50.100.132", "lens_position": 0.2},
     {"name": "CAM33", "ip": "10.50.100.133", "lens_position": 0.4},
     {"name": "CAM34", "ip": "10.50.100.134", "lens_position": 0.1},
     {"name": "CAM35", "ip": "10.50.100.135", "lens_position": 0.2},

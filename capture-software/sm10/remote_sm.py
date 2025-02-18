@@ -148,11 +148,11 @@ def apply_settings(settings):
             controls["ColourGains"] = (red_gain, blue_gain)
         else:
             if wb_selection == '3200K':
-                controls["ColourGains"] = (2.3, 1.3)
+                controls["ColourGains"] = (1.2, 2.3)
             elif wb_selection == '4400K':
-                controls["ColourGains"] = (1.8, 1.5)
-            elif wb_selection == '5600K':
                 controls["ColourGains"] = (1.5, 1.8)
+            elif wb_selection == '5600K':
+                controls["ColourGains"] = (1.8, 1.5)
     else:
         controls["AwbEnable"] = True
         controls["AwbMode"]= getattr(libcontrols.AwbModeEnum, wb_selection, 0) # 0 = 'Auto'
