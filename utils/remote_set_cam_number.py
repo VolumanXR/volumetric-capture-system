@@ -21,22 +21,24 @@ def configure_hostname(cam_number):
     with open(filepath_hosts, "w") as file:
         file.writelines(lines)
 
-    # Change /etc/hostname
-    subprocess.run(["sudo", "sh", "-c", f"echo {hostname} > {filepath_hosts}"], check=True)
     subprocess.run(["sudo", "sh", "-c", f"echo {hostname} > {filepath_hostname}"], check=True)
 
+    print(f"cam updated to: {hostname}")
 
 def configure_ip_address(cam_number):
     ip_address = f"10.50.100.{int(cam_number)+100}"
-
+    # sudo nmcli connection modify preconfigured ipv4.addresses 10.50.100.200/24 ipv4.gateway 10.50.100.2 ipv4.dns 10.50.100.2 ipv4.method Manual ipv4.ignore-auto-dns yes
     nmcli_command = [
-    "sudo", "nmcli", "connection", "modify", " preconfigured",
-    "ipv4.addresses", ip_address,
+    "sudo", "nmcli", "connection", "modify", "preconfigured",
+    "ipv4.addresses", ip_address + "/24",
     "ipv4.gateway", "10.50.100.2",
     "ipv4.dns", "10.50.100.2",
     "ipv4.method", "Manual",
     "ipv4.ignore-auto-dns", "yes"
-]
+    ]
+
+    subprocess.run(nmcli_command, check=True)
+    print(f"Static IP set: {ip_address}")
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Specify camera number")
