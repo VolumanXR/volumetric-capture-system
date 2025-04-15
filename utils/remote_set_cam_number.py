@@ -9,15 +9,13 @@ filepath_hosts = os.path.join("/etc","hosts")
 
 def configure_hostname(cam_number):
     hostname = f"cam{cam_number}"
-    # Read the current contents of /etc/hosts
+
     with open(filepath_hosts, "r") as file:
         lines = file.readlines()
 
-    # Modify only the last line
     if lines and "127.0.1.1" in lines[-1]:
         lines[-1] = f"127.0.1.1 {hostname}\n"
 
-    # Write the changes back to /etc/hosts
     with open(filepath_hosts, "w") as file:
         file.writelines(lines)
 
@@ -27,7 +25,7 @@ def configure_hostname(cam_number):
 
 def configure_ip_address(cam_number):
     ip_address = f"10.50.100.{int(cam_number)+100}"
-    # sudo nmcli connection modify preconfigured ipv4.addresses 10.50.100.200/24 ipv4.gateway 10.50.100.2 ipv4.dns 10.50.100.2 ipv4.method Manual ipv4.ignore-auto-dns yes
+
     nmcli_command = [
     "sudo", "nmcli", "connection", "modify", "preconfigured",
     "ipv4.addresses", ip_address + "/24",
