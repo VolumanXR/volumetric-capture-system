@@ -17,7 +17,7 @@ import time
 import logging
 from pathlib import Path
 import paramiko
-from config import config
+from config import config as cfg
 
 cpu_cores = os.cpu_count()
 MAX_NORMAL_WORKERS = cpu_cores * 2
@@ -64,11 +64,11 @@ logger = logging.getLogger("MasterCameraController")
 
 # Load camera list from camera_list.json
 def load_camera_list():
-    if not os.path.exists(config.CAMERA_LIST_FILE):
-        messagebox.showerror("Error", f"{config.CAMERA_LIST_FILE} not found.")
+    if not os.path.exists(cfg.CAMERA_LIST_FILE):
+        messagebox.showerror("Error", f"{cfg.CAMERA_LIST_FILE} not found.")
         sys.exit(1)
     try:
-        with open(config.CAMERA_LIST_FILE, 'r') as f:
+        with open(cfg.CAMERA_LIST_FILE, 'r') as f:
             cameras = json.load(f)
             camera_dict = {}
             for cam in cameras:
@@ -80,23 +80,23 @@ def load_camera_list():
                     camera_dict[cam_id] = ip
             return camera_dict
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to load {config.CAMERA_LIST_FILE}: {e}")
+        messagebox.showerror("Error", f"Failed to load {cfg.CAMERA_LIST_FILE}: {e}")
         sys.exit(1)
 
 camera_dict = load_camera_list()
 
 # Load master settings from camera_settings.json if it exists
 def load_master_settings():
-    if os.path.exists(config.MASTER_SETTINGS_FILE):
+    if os.path.exists(cfg.MASTER_SETTINGS_FILE):
         try:
-            with open(config.MASTER_SETTINGS_FILE, 'r') as f:
+            with open(cfg.MASTER_SETTINGS_FILE, 'r') as f:
                 saved_settings = json.load(f)
             # Merge saved settings into default settings
             merged_settings = default_settings.copy()
             merged_settings.update(saved_settings)
             return merged_settings
         except Exception as e:
-            logger.error(f"Failed to load {config.MASTER_SETTINGS_FILE}: {e}")
+            logger.error(f"Failed to load {cfg.MASTER_SETTINGS_FILE}: {e}")
             return default_settings.copy()
     else:
         return default_settings.copy()
@@ -104,11 +104,11 @@ def load_master_settings():
 # Save master settings to camera_settings.json
 def save_master_settings(settings):
     try:
-        with open(config.MASTER_SETTINGS_FILE, 'w') as f:
+        with open(cfg.MASTER_SETTINGS_FILE, 'w') as f:
             json.dump(settings, f, indent=4)
         logger.debug("Saved settings to camera_settings.json")
     except Exception as e:
-        logger.error(f"Failed to save settings to {config.MASTER_SETTINGS_FILE}: {e}")
+        logger.error(f"Failed to save settings to {cfg.MASTER_SETTINGS_FILE}: {e}")
 
 # Function to send control settings to a specific camera
 def send_controls_to_camera(ip, settings):
@@ -616,7 +616,7 @@ class MasterCameraController:
 
 def start_remote_hosts(master):
     alert_window = show_starting_alert()
-    cameras = load_camera_list(config.CAMERA_LIST_FILE)
+    cameras = load_camera_list(cfg.CAMERA_LIST_FILE)
     with ThreadPoolExecutor(max_workers=MAX_NORMAL_WORKERS) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
@@ -637,8 +637,8 @@ def show_starting_alert():
     alert.configure(bg=background_color)
     
     # Set the window icon if available.
-    if os.path.exists(config.ICON_PATH):
-        alert.iconbitmap(config.ICON_PATH)
+    if os.path.exists(cfg.ICON_PATH):
+        alert.iconbitmap(cfg.ICON_PATH)
     
     # Increase window height to accommodate the logo and text.
     window_width = 300
@@ -649,9 +649,9 @@ def show_starting_alert():
     y = (screen_height // 2) - (window_height // 2)
     alert.geometry(f"{window_width}x{window_height}+{x}+{y}")
      
-    if os.path.exists(config.LOGO_PATH):
+    if os.path.exists(cfg.LOGO_PATH):
         # Open the image using Pillow
-        img = Image.open(config.LOGO_PATH)
+        img = Image.open(cfg.LOGO_PATH)
         # Calculate maximum dimensions for the logo.
         # Here we allow the logo to use up to 80% of the window's width and 60% of its height.
         max_logo_width = int(window_width * 0.8)
@@ -684,8 +684,8 @@ def show_stopping_alert():
     alert.configure(bg=background_color)
     
     # Set the window icon if available.
-    if os.path.exists(config.ICON_PATH):
-        alert.iconbitmap(config.ICON_PATH)
+    if os.path.exists(cfg.ICON_PATH):
+        alert.iconbitmap(cfg.ICON_PATH)
     
     # Increase window height to accommodate the logo and text.
     window_width = 300
@@ -696,9 +696,9 @@ def show_stopping_alert():
     y = (screen_height // 2) - (window_height // 2)
     alert.geometry(f"{window_width}x{window_height}+{x}+{y}")
     
-    if os.path.exists(config.LOGO_PATH):
+    if os.path.exists(cfg.LOGO_PATH):
         # Open the image using Pillow
-        img = Image.open(config.LOGO_PATH)
+        img = Image.open(cfg.LOGO_PATH)
         # Calculate maximum dimensions for the logo.
         # Here we allow the logo to use up to 80% of the window's width and 60% of its height.
         max_logo_width = int(window_width * 0.8)
@@ -722,7 +722,7 @@ def show_stopping_alert():
 
 def stop_remote_hosts():
     alert_window = show_stopping_alert()
-    cameras = load_camera_list(config.CAMERA_LIST_FILE)
+    cameras = load_camera_list(cfg.CAMERA_LIST_FILE)
     with ThreadPoolExecutor(max_workers=MAX_NORMAL_WORKERS) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
@@ -744,7 +744,7 @@ def ssh_command(ssh_client, command):
 def connect_ssh(host):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname=host, username=config.USERNAME, password=config.PASSWORD, timeout=5)
+    ssh.connect(hostname=host, username=cfg.USERNAME, password=cfg.PASSWORD, timeout=5)
     return ssh
 
 def start_script(host):
@@ -786,7 +786,7 @@ def stop_script(host):
 if __name__ == '__main__':
     master_settings = load_master_settings()
     root = tk.Tk()
-    if os.path.exists(config.ICON_PATH):
-        root.iconbitmap(config.ICON_PATH)
+    if os.path.exists(cfg.ICON_PATH):
+        root.iconbitmap(cfg.ICON_PATH)
     app = MasterCameraController(root, camera_dict, master_settings)
     root.mainloop()

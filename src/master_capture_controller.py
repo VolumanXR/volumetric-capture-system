@@ -21,7 +21,7 @@ import pygame
 from enum import Enum
 import sys
 from PIL import Image, ImageTk
-from config import config
+from config import config as cfg
 
 SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
@@ -99,12 +99,12 @@ class MainWindow:
         self.debug_mode = False
         self.current_state = State.STANDBY
         
-        if os.path.exists(config.ICON_PATH):
-            root.iconbitmap(config.ICON_PATH)
+        if os.path.exists(cfg.ICON_PATH):
+            root.iconbitmap(cfg.ICON_PATH)
 
         self.cameras = []         # Loaded from camera_list.json
         self.camera_status = {}   # ip -> { 'state', 'last_seen', 'storage_remaining_mb', 'sessions', ... }
-        self.cameras = load_camera_list(config.CAMERA_LIST_FILE)
+        self.cameras = load_camera_list(cfg.CAMERA_LIST_FILE)
 
         if not os.path.exists(SESSIONS_DIR):
             os.makedirs(SESSIONS_DIR)
@@ -121,17 +121,17 @@ class MainWindow:
         self.ip_to_identity = {}
 
         pygame.mixer.init()
-        self.sound_still_trigger = pygame.mixer.Sound(os.path.join(config.MAIN_DIR, 'res','202741__preilly11__eos-shutter-1.wav'))
+        self.sound_still_trigger = pygame.mixer.Sound(os.path.join(cfg.MAIN_DIR, 'res','202741__preilly11__eos-shutter-1.wav'))
         self.sound_still_triggered = False
 
         # TODO: Change sound for video recording
-        self.sound_video_preroll = pygame.mixer.Sound(os.path.join(config.MAIN_DIR, 'res','short_beep.wav'))
+        self.sound_video_preroll = pygame.mixer.Sound(os.path.join(cfg.MAIN_DIR, 'res','short_beep.wav'))
 
         self.sound_video_preroll_triggerd_3 = False
         self.sound_video_preroll_triggerd_2 = False
         self.sound_video_preroll_triggerd_1 = False
 
-        self.sound_video_trigger = pygame.mixer.Sound(os.path.join(config.MAIN_DIR, 'res','long_beep.wav'))
+        self.sound_video_trigger = pygame.mixer.Sound(os.path.join(cfg.MAIN_DIR, 'res','long_beep.wav'))
         self.sound_video_triggered = False
 
         self.create_widgets()
@@ -676,7 +676,7 @@ def update_dist_time():
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # Automatically add host keys
 
         # Connect to the remote host
-        client.connect('10.50.100.5', username='voluman', password='xr')
+        client.connect('10.50.100.5', username=cfg.USERNAME, password=cfg.PASSWORD)
 
         # Prepare the command to set the time
         command = f'sudo date -s "{current_time}"'
@@ -741,7 +741,7 @@ def get_ip_address_in_network(target_network="10.50.100.0/24"):
 def start_remote_hosts(root):
     alert_window = show_starting_alert()
     # Load the camera list
-    cameras = load_camera_list(config.CAMERA_LIST_FILE)
+    cameras = load_camera_list(cfg.CAMERA_LIST_FILE)
     master_voluman_net_ip = get_ip_address_in_network()
     cpu_cores = os.cpu_count()
     workers = cpu_cores * 2
@@ -768,8 +768,8 @@ def show_starting_alert():
     alert.configure(bg=background_color)
     
     # Set the window icon if available.
-    if os.path.exists(config.ICON_PATH):
-        alert.iconbitmap(config.ICON_PATH)
+    if os.path.exists(cfg.ICON_PATH):
+        alert.iconbitmap(cfg.ICON_PATH)
     
     # Increase window height to accommodate the logo and text.
     window_width = 300
@@ -780,9 +780,9 @@ def show_starting_alert():
     y = (screen_height // 2) - (window_height // 2)
     alert.geometry(f"{window_width}x{window_height}+{x}+{y}")
     
-    if os.path.exists(config.LOGO_PATH):
+    if os.path.exists(cfg.LOGO_PATH):
         # Open the image using Pillow
-        img = Image.open(config.LOGO_PATH)
+        img = Image.open(cfg.LOGO_PATH)
         # Calculate maximum dimensions for the logo.
         # Here we allow the logo to use up to 80% of the window's width and 60% of its height.
         max_logo_width = int(window_width * 0.8)
@@ -815,8 +815,8 @@ def show_stopping_alert():
     alert.configure(bg=background_color)
     
     # Set the window icon if available.
-    if os.path.exists(config.ICON_PATH):
-        alert.iconbitmap(config.ICON_PATH)
+    if os.path.exists(cfg.ICON_PATH):
+        alert.iconbitmap(cfg.ICON_PATH)
     
     # Increase window height to accommodate the logo and text.
     window_width = 300
@@ -827,9 +827,9 @@ def show_stopping_alert():
     y = (screen_height // 2) - (window_height // 2)
     alert.geometry(f"{window_width}x{window_height}+{x}+{y}")
     
-    if os.path.exists(config.LOGO_PATH):
+    if os.path.exists(cfg.LOGO_PATH):
         # Open the image using Pillow
-        img = Image.open(config.LOGO_PATH)
+        img = Image.open(cfg.LOGO_PATH)
         # Calculate maximum dimensions for the logo.
         # Here we allow the logo to use up to 80% of the window's width and 60% of its height.
         max_logo_width = int(window_width * 0.8)
@@ -854,7 +854,7 @@ def stop_remote_hosts():
     alert_window = show_stopping_alert()
     
     # Load the camera list
-    cameras = load_camera_list(config.CAMERA_LIST_FILE)
+    cameras = load_camera_list(cfg.CAMERA_LIST_FILE)
     cpu_cores = os.cpu_count()
     workers = cpu_cores * 2
 
@@ -894,7 +894,7 @@ def connect_ssh(host):
     """
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname=host, username=config.USERNAME, password=config.PASSWORD, timeout=5)
+    ssh.connect(hostname=host, username=cfg.USERNAME, password=cfg.PASSWORD, timeout=5)
     return ssh
 
 def start_script(host, master_voluman_net_ip, custom_lens_position):
