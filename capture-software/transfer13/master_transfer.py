@@ -171,7 +171,11 @@ class SessionDownloaderApp:
         self.session_tree.column("Not found on", width=200, anchor="w")
         self.session_tree.column("Status", width=120, anchor="w")
         self.session_tree.column("First Dropped", width=120, anchor="center")
-        # ---------------------------------------------------------------------
+
+        # Add vertical scrollbar
+        self.tree_scroll_y = ttk.Scrollbar(frame, orient="vertical", command=self.session_tree.yview)
+        self.session_tree.configure(yscrollcommand=self.tree_scroll_y.set)
+        self.tree_scroll_y.grid(row=1, column=4, sticky='ns')
 
         self.session_tree.grid(row=1, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)
 
@@ -887,7 +891,7 @@ def stop_remote_hosts():
         for cam in cameras:
             host_ip = cam["ip"]
             executor.submit(stop_script, host_ip)
-    alert_window.destroy()
+    alert_window.destroy() 
 
 
 def load_camera_list(json_path):
