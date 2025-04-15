@@ -15,7 +15,7 @@
     "red_gain": 1.0,
     "blue_gain": 1.0,
     "preview_resolution": "360p",
-    "selected_camera_id": "",
+    "selected_camera_id": "21",
     "af_mode": "manual",
     "lens_position": 0.66
 }

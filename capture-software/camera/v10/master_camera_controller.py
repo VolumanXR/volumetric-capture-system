@@ -31,7 +31,7 @@ ICON_PATH = os.path.join(UTILS_FOLDER, "Voluman_Icon.ico")
 cpu_cores = os.cpu_count()
 MAX_NORMAL_WORKERS = cpu_cores * 2
 
-SCRIPTNAME = 'remote_transfer.py'
+SCRIPTNAME = 'remote_camera_controller.py'
 USERNAME = 'voluman'
 PASSWORD = 'xr'
 
@@ -190,7 +190,9 @@ class MasterCameraController:
         self.create_gui()
         
         start_remote_hosts(self.root)
-
+        
+        time.sleep(3)
+        
         # If a selected_camera_id exists in settings, set it in the Camera ID input field
         if self.settings.get('selected_camera_id'):
             selected_cam_id = self.settings['selected_camera_id']
