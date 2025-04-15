@@ -146,7 +146,7 @@ class SessionDownloaderApp:
         btn_change_location.pack(side="right", padx=5, pady=5)
 
         # --- Existing Session Controls Frame ---
-        frame = ttk.LabelFrame(self.master, text="Session Controls")
+        frame = ttk.LabelFrame(self.master, text="Files")
         frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         self.refresh_button = ttk.Button(frame, text="Refresh", command=self.get_sessions)
