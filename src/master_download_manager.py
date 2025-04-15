@@ -16,29 +16,17 @@ import shutil
 import sys
 from PIL import Image, ImageTk
 import zmq   # <-- New import for ZeroMQ
+from config import config as cfg
 
 # Global flag for offline mode.
 OFFLINE_MODE = False
 if len(sys.argv) > 1 and sys.argv[1].lower() == "offline":
     OFFLINE_MODE = True
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+if not os.path.exists(cfg.CAMERA_LIST_FILE):
+    raise FileNotFoundError(f"{cfg.CAMERA_LIST_FILE} not found.")
 
-UTILS_FOLDER = os.path.join(SCRIPT_DIR, 'utils')
-CONFIG_FOLDER = os.path.join(SCRIPT_DIR, 'config')
-RES_FOLDER = os.path.join(SCRIPT_DIR, 'res')
-DEFAULT_SESSIONS_FOLDER = os.path.join(SCRIPT_DIR, "Sessions")
-
-CAMERA_LIST_FILE = os.path.join(CONFIG_FOLDER,'camera_list.json') 
-MASTER_SETTINGS_FILE = os.path.join(CONFIG_FOLDER,'camera_settings.json')
-ICON_PATH = os.path.join(RES_FOLDER, "Voluman_Icon.ico")
-LOGO_PATH = os.path.join(RES_FOLDER, "Voluman_Logo.png")
-CONFIG_FILE = os.path.join(CONFIG_FOLDER, "transfer_config.json")
-
-if not os.path.exists(CAMERA_LIST_FILE):
-    raise FileNotFoundError(f"{CAMERA_LIST_FILE} not found.")
-
-with open(CAMERA_LIST_FILE, 'r') as f:
+with open(cfg.CAMERA_LIST_FILE, 'r') as f:
     CAMERA_LIST = json.load(f)
     
 UDP_PORT = 50006
@@ -52,19 +40,17 @@ MAX_CONVERSION_WORKERS = cpu_cores
 # MAX_SIMULTANEOUS_DOWNLOADS = 10
 
 SCRIPTNAME = 'remote_transfer.py'
-USERNAME = 'voluman'
-PASSWORD = 'xr'
 
 def load_config():
-    """Load configuration from CONFIG_FILE if available, otherwise return an empty dict."""
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, 'r') as cf:
+    """Load configuration from config.CONFIG_FILE if available, otherwise return an empty dict."""
+    if os.path.exists(cfg.TRANSFER_CONFIG_FILE):
+        with open(cfg.TRANSFER_CONFIG_FILE, 'r') as cf:
             return json.load(cf)
     return {}
 
 def save_config(config):
-    """Save the provided config dictionary into CONFIG_FILE."""
-    with open(CONFIG_FILE, 'w') as cf:
+    """Save the provided config dictionary into config.CONFIG_FILE."""
+    with open(cfg.TRANSFER_CONFIG_FILE, 'w') as cf:
         json.dump(config, cf)
 
 class SessionDownloaderApp:
@@ -80,7 +66,7 @@ class SessionDownloaderApp:
 
         # Load configuration for the sessions folder.
         self.config = load_config()
-        self.sessions_folder = self.config.get("sessions_folder", DEFAULT_SESSIONS_FOLDER)
+        self.sessions_folder = self.config.get("sessions_folder", cfg.DEFAULT_SESSIONS_FOLDER)
         # Make sure the sessions folder is an absolute path.
         self.sessions_folder = os.path.abspath(self.sessions_folder)
         os.makedirs(self.sessions_folder, exist_ok=True)
@@ -773,7 +759,7 @@ class SessionDownloaderApp:
 
 def start_remote_hosts(master):
     alert_window = show_starting_alert()
-    cameras = load_camera_list(CAMERA_LIST_FILE)
+    cameras = load_camera_list(cfg.CAMERA_LIST_FILE)
     with ThreadPoolExecutor(max_workers=MAX_NORMAL_WORKERS) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
@@ -794,8 +780,8 @@ def show_starting_alert():
     alert.configure(bg=background_color)
     
     # Set the window icon if available.
-    if os.path.exists(ICON_PATH):
-        alert.iconbitmap(ICON_PATH)
+    if os.path.exists(cfg.ICON_PATH):
+        alert.iconbitmap(cfg.ICON_PATH)
     
     # Increase window height to accommodate the logo and text.
     window_width = 300
@@ -808,9 +794,9 @@ def show_starting_alert():
     
     
     
-    if os.path.exists(LOGO_PATH):
+    if os.path.exists(cfg.LOGO_PATH):
         # Open the image using Pillow
-        img = Image.open(LOGO_PATH)
+        img = Image.open(cfg.LOGO_PATH)
         # Calculate maximum dimensions for the logo.
         # Here we allow the logo to use up to 80% of the window's width and 60% of its height.
         max_logo_width = int(window_width * 0.8)
@@ -843,8 +829,8 @@ def show_stopping_alert():
     alert.configure(bg=background_color)
     
     # Set the window icon if available.
-    if os.path.exists(ICON_PATH):
-        alert.iconbitmap(ICON_PATH)
+    if os.path.exists(cfg.ICON_PATH):
+        alert.iconbitmap(cfg.ICON_PATH)
     
     # Increase window height to accommodate the logo and text.
     window_width = 300
@@ -855,9 +841,9 @@ def show_stopping_alert():
     y = (screen_height // 2) - (window_height // 2)
     alert.geometry(f"{window_width}x{window_height}+{x}+{y}")
     
-    if os.path.exists(LOGO_PATH):
+    if os.path.exists(cfg.LOGO_PATH):
         # Open the image using Pillow
-        img = Image.open(LOGO_PATH)
+        img = Image.open(cfg.LOGO_PATH)
         # Calculate maximum dimensions for the logo.
         # Here we allow the logo to use up to 80% of the window's width and 60% of its height.
         max_logo_width = int(window_width * 0.8)
@@ -881,7 +867,7 @@ def show_stopping_alert():
 
 def stop_remote_hosts():
     alert_window = show_stopping_alert()
-    cameras = load_camera_list(CAMERA_LIST_FILE)
+    cameras = load_camera_list(cfg.CAMERA_LIST_FILE)
     with ThreadPoolExecutor(max_workers=MAX_NORMAL_WORKERS) as executor:
         for cam in cameras:
             host_ip = cam["ip"]
@@ -904,7 +890,7 @@ def ssh_command(ssh_client, command):
 def connect_ssh(host):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname=host, username=USERNAME, password=PASSWORD, timeout=5)
+    ssh.connect(hostname=host, username=cfg.USERNAME, password=cfg.PASSWORD, timeout=5)
     return ssh
 
 
@@ -947,8 +933,8 @@ def stop_script(host):
 
 def main():
     root = tk.Tk()
-    if os.path.exists(ICON_PATH):
-        root.iconbitmap(ICON_PATH)
+    if os.path.exists(cfg.ICON_PATH):
+        root.iconbitmap(cfg.ICON_PATH)
     app = SessionDownloaderApp(root, offline_mode=OFFLINE_MODE)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
     root.mainloop()
