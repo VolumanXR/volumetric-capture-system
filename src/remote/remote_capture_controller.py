@@ -1,4 +1,4 @@
-# remote_sm.py v10.12
+# remote_capture_controller.py v11
 
 import os
 import time
@@ -102,17 +102,19 @@ def apply_settings(settings):
     controls["FrameRate"] = frame_rate
     shutter_angle = float(settings.get('shutter_angle', 180))
 
-    width,_ = picam2.stream_configuration("main")["size"]
-    if width>1920:
+    width, _ = picam2.stream_configuration("main")["size"]
+    if width > 1920:
         shutter_angle = shutter_angle * 2
 
-    base_exposure_time = (shutter_angle / 360.0) * (1.0 / frame_rate) * 1_000_000
+    base_exposure_time = (
+        (shutter_angle / 360.0) * (1.0 / frame_rate) * 1_000_000
+    )
     iso_value = float(settings.get('iso', 100))
 
-    controls["Brightness"] = float(settings.get('brightness', 0))/100.0
-    controls["Contrast"] = float(settings.get('contrast', 100))/100.0
-    controls["Saturation"] = float(settings.get('saturation', 100))/100.0
-    controls["Sharpness"] = float(settings.get('sharpness', 100))/100.0
+    controls["Brightness"] = float(settings.get('brightness', 0)) / 100.0
+    controls["Contrast"] = float(settings.get('contrast', 100)) / 100.0
+    controls["Saturation"] = float(settings.get('saturation', 100)) / 100.0
+    controls["Sharpness"] = float(settings.get('sharpness', 100)) / 100.0
 
     flicker_selection = settings.get('flicker_control', 'Off')
     if flicker_selection == 'Off':
@@ -128,7 +130,7 @@ def apply_settings(settings):
             exposure_time = int(16667)
         elif flicker_selection == 'Manual':
             flicker_period = float(settings.get('flicker_period', 50))
-            exposure_time = int((1.0/flicker_period)*1_000_000)
+            exposure_time = int((1.0 / flicker_period) * 1_000_000)
         else:
             exposure_time = int(base_exposure_time)
         controls["ExposureTime"] = exposure_time
@@ -150,48 +152,49 @@ def apply_settings(settings):
                 controls["ColourGains"] = (1.8, 1.5)
     else:
         controls["AwbEnable"] = True
-        controls["AwbMode"]= getattr(libcontrols.AwbModeEnum, wb_selection, 0) # 0 = 'Auto'
-        controls["AwbMode"]= getattr(libcontrols.AwbModeEnum, wb_selection, 0)
-    
+        controls["AwbMode"] = getattr(libcontrols.AwbModeEnum, wb_selection, 0) # 0 == Auto WhiteBalance
+
     if settings.get('af_mode', 'manual') == 'auto':
         controls["AfMode"] = 2
     else:
         controls["AfMode"] = 0
-        
+
     if CUSTOM_LENS_POSITION is not None:
         controls["LensPosition"] = float(CUSTOM_LENS_POSITION)
         log_event(f"Using custom lens position: {controls['LensPosition']}")
     else:
         controls["LensPosition"] = settings.get('lens_position', 0.36)
         log_event(f"Using default lens position: {controls['LensPosition']}")
-        
+
     try:
         picam2.set_controls(controls)
     except Exception as e:
         log_event(f"Error applying settings: {e}")
 
 def configure_camera(custom_resolution=None):
-    if (custom_resolution is not None):
-        if (custom_resolution == 'FullHD'):
+    if custom_resolution is not None:
+        if custom_resolution == 'FullHD':
             width = 1920
             height = 1080
-        elif (custom_resolution == 'HD'):
+        elif custom_resolution == 'HD':
             width = 1280
             height = 720
-        elif (custom_resolution == 'SD'):
+        elif custom_resolution == 'SD':
             width = 640
             height = 480
-        elif (custom_resolution == 'UHD'):
+        elif custom_resolution == 'UHD':
             width = 3840
             height = 2160
         else:
             width = default_settings['width']
             height = default_settings['height']
-    else: 
+    else:
         width = default_settings['width']
         height = default_settings['height']
-    
-    video_config = picam2.create_video_configuration(main={"size": (width, height)})
+
+    video_config = picam2.create_video_configuration(
+        main={"size": (width, height)}
+    )
     picam2.configure(video_config)
     picam2.start()
     picam2.options["quality"] = 100
@@ -261,7 +264,12 @@ def send_status():
 
 def sync_with_ntp():
     try:
-        result = subprocess.run(['sudo', 'chronyc', 'makestep'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(
+            ['sudo', 'chronyc', 'makestep'],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
         print(result.stdout.decode())
     except subprocess.CalledProcessError as e:
         print(f"Error occurred: {e}")
@@ -291,71 +299,77 @@ def record_video(session_name, bitrate, start_time):
         'start_time': start_time
     }
     send_message(ack_msg)
-    
+
     ip_suffix = my_ip.split('.')[-1]
-    recording_file = os.path.join(STORAGE_PATH, f'{session_name}_{ip_suffix}.h264')
+    recording_file = os.path.join(
+        STORAGE_PATH, f'{session_name}_{ip_suffix}.h264'
+    )
     picam2.stop()
-    
+
     global fps
     fps = default_settings['frame_rate']
 
     local_encoder = H264Encoder(int(bitrate) * 1000000)
-    
+
     picam2.start_encoder(local_encoder, recording_file)
-    
+
     time.sleep(start_time - time.time())
-    
+
     start = time.perf_counter()
     picam2.start()
     offset = time.perf_counter() - (start / 2)
-    timecode_start_time = datetime.datetime.now() 
-    
+    timecode_start_time = datetime.datetime.now()
+
     state = RECORDING
     log_event(f'Recording started: {recording_file}')
-    
-    frame_timestamps = {}  
-    missing_frames = []  
+
+    frame_timestamps = {}
+    missing_frames = []
     frame_number = 0
-    
-    while (state == RECORDING):
+
+    while state == RECORDING:
         metadata = picam2.capture_metadata()
-        
-        if ("SensorTimestamp" in metadata and metadata is not None):
-            lastSensorTimestamp = frame_timestamps.get(frame_number-1, None)
+
+        if "SensorTimestamp" in metadata and metadata is not None:
+            lastSensorTimestamp = frame_timestamps.get(frame_number - 1, None)
             if lastSensorTimestamp is None:
                 frame_timestamps[frame_number] = metadata["SensorTimestamp"]
                 frame_number = frame_number + 1
             else:
-                frame_time = 1/fps
-                timestamp_interval = (abs(lastSensorTimestamp - metadata["SensorTimestamp"]))/1e9
-                
+                frame_time = 1 / fps
+                timestamp_interval = (
+                    abs(lastSensorTimestamp - metadata["SensorTimestamp"])
+                ) / 1e9
+
                 if timestamp_interval < (frame_time * 1.1):
                     frame_timestamps[frame_number] = metadata["SensorTimestamp"]
                     frame_number = frame_number + 1
                 else:
                     dropped_frames = round(timestamp_interval / frame_time)
-                    missing_frames.extend(range(frame_number, frame_number + dropped_frames))
+                    missing_frames.extend(
+                        range(frame_number, frame_number + dropped_frames)
+                    )
 
-                    frame_number = frame_number+ dropped_frames
+                    frame_number = frame_number + dropped_frames
 
                     frame_timestamps[frame_number] = metadata["SensorTimestamp"]
                     frame_number = frame_number + 1
-        
+
     picam2.stop_recording()
 
     for dropped_frame in missing_frames:
         frame_timestamps[dropped_frame] = 'dropped'
 
     frame_timestamps = dict(sorted(frame_timestamps.items()))
-    
+
     metadata_file = os.path.splitext(recording_file)[0]
     metadata_file = metadata_file + '.json'
-    
+
     with open(metadata_file, 'w') as f:
         json.dump(frame_timestamps, f)
-        
+
     print(f"Metadata file saved: {metadata_file}")
-    
+
     global timecode
     timecode = get_formatted_timecode(fps, timecode_start_time)
 
@@ -363,7 +377,7 @@ def ffmpeg_processing():
     global timecode, recording_file, fps
     recording_file_name = os.path.splitext(recording_file)[0]
     recording_file_name = recording_file_name + '.mp4'
-    
+
     ffmpeg_cmd = [
         'ffmpeg',
         '-y',  # Overwrite output file if it exists
@@ -374,9 +388,11 @@ def ffmpeg_processing():
         '-timecode', timecode,  # Set starting timecode
         recording_file_name  # Output file
     ]
-    
+
     try:
-        result = subprocess.run(ffmpeg_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(
+            ffmpeg_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         log_event(f'FFmpeg processing complete: {recording_file_name}')
         os.remove(recording_file)
     except subprocess.CalledProcessError as e:
@@ -389,7 +405,7 @@ def postprocess_video():
         state = STANDBY
         log_event('Recording stopped.')
         time.sleep(0.5)
-    
+
         try:
             ffmpeg_processing()
             log_event(f'FFmpeg processing complete: {recording_file}')
@@ -398,7 +414,7 @@ def postprocess_video():
 
 def record_still(session_name, start_time, session_resolution):
     sync_with_ntp()
-    
+
     global state
     state = PREPARING_STILL
     log_event("Preparing to capture still.")
@@ -433,20 +449,30 @@ def handle_messages():
             task = message.get('task')
 
             if task == 'REC_START':
-                s_name = message.get('session_name')
-                bitrate = message.get('bitrate', '15000')
-                start_t = message.get('start_time', time.time()+5)
-                t = threading.Thread(target=record_video, args=(s_name, bitrate, start_t), daemon=True)
+                t = threading.Thread(
+                    target=record_video,
+                    args=(
+                        message.get('session_name'),
+                        message.get('bitrate', '15000'),
+                        message.get('start_time', time.time() + 5)
+                    ),
+                    daemon=True
+                )
                 t.start()
 
             elif task == 'REC_STOP':
                 postprocess_video()
 
             elif task == 'REC_STILL':
-                s_name = message.get('session_name')
-                start_t = message.get('start_time', time.time()+5)
-                s_res = message.get('resolution', 'FullHD')
-                t = threading.Thread(target=record_still, args=(s_name, start_t, s_res), daemon=True)
+                t = threading.Thread(
+                    target=record_still,
+                    args=(
+                        message.get('session_name'),
+                        message.get('start_time', time.time() + 5),
+                        message.get('resolution', 'FullHD')
+                    ),
+                    daemon=True
+                )
                 t.start()
 
             elif task == 'UPDATE_SETTINGS':
@@ -471,7 +497,7 @@ def sync_with_ntp_loop():
     while True:
         if state == STANDBY:
             sync_with_ntp()
-        time.sleep(60*10)
+        time.sleep(60 * 10)
 
 def log_event(message):
     print(message)
