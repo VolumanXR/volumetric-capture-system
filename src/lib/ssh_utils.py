@@ -27,7 +27,7 @@ from config import config as cfg
 class RemoteScript(Enum):
     CAMERACONTROLLER = 'remote_camera_controller.py'
     CAPTURECONTROLLER = 'remote_capture_controller.py'
-    DOWNLOADMANAGER = 'remote_transfer.py'
+    DOWNLOADMANAGER = 'remote_download_manager.py'
 
 def get_ip_address_in_network(target_network="10.50.100.0/24"):
     """
