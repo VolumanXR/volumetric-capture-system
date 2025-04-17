@@ -1,5 +1,3 @@
-# remote_camera_controller.py - v11
-
 import os
 import json
 import logging
@@ -7,11 +5,10 @@ from flask import Flask, Response, request, jsonify
 from picamera2 import Picamera2
 import cv2
 import time
-import psutil  # Added for CPU monitoring
-
+import psutil 
+import atexit
 from libcamera import controls as libcontrols
 
-# Configure Logging
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(name)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -19,14 +16,21 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Initialize Picamera2
 try:
     picam2 = Picamera2()
 except Exception as e:
     logger.error(f"Failed to initialize Picamera2: {e}")
     exit(1)
 
-# Default settings
+def cleanup():
+    try:
+        picam2.stop()
+        logger.info("Camera stopped and resources cleaned up.")
+    except Exception as e:
+        logger.error(f"Error during cleanup: {e}")
+
+atexit.register(cleanup)
+
 default_settings = {
     "width": 1920,
     "height": 1080,
@@ -47,7 +51,6 @@ default_settings = {
     "lens_position": 0.58
 }
 
-# Load settings from camera_settings.json if it exists
 if os.path.exists('camera_settings.json'):
     try:
         with open('camera_settings.json', 'r') as f:
@@ -72,35 +75,28 @@ def apply_settings(settings):
     controls["Saturation"] = float(settings.get('saturation', 100)) / 100.0
     controls["Sharpness"] = float(settings.get('sharpness', 100)) / 100.0
 
-    # Handle Flicker Control
     flicker_selection = settings.get('flicker_control', 'Off')
     if flicker_selection == 'Off':
-        # Use Auto Exposure setting
         controls["AeEnable"] = settings.get('auto_exposure', True)
         if not settings.get('auto_exposure', True):
             controls["ExposureTime"] = int(base_exposure_time)
             controls["AnalogueGain"] = iso_value / 100.0
     else:
-        # Disable Auto Exposure for flicker control
         controls["AeEnable"] = False
         if flicker_selection == '50Hz':
-            # Set exposure time to multiple of 20ms (50Hz period)
-            exposure_time = int(20_000)  # 20ms in microseconds
+            exposure_time = int(20_000)
         elif flicker_selection == '60Hz':
-            # Set exposure time to multiple of 16.67ms (60Hz period)
-            exposure_time = int(16_667)  # Approximate 16.67ms
+            exposure_time = int(16_667)
         elif flicker_selection == 'Manual':
-            # Use the flicker period from the settings
+# Use the flicker period from the settings
             flicker_period = float(settings.get('flicker_period', 50))  # in Hz
             exposure_time = int((1.0 / flicker_period) * 1_000_000)  # Convert Hz to microseconds
         else:
-            # Default exposure time
             exposure_time = int(base_exposure_time)
 
         controls["ExposureTime"] = exposure_time
         controls["AnalogueGain"] = iso_value / 100.0
 
-    # Handle White Balance
     wb_selection = settings.get('white_balance', 'Auto')
     if wb_selection and wb_selection in ['Manual', '3200K', '4400K', '5600K']:
         controls["AwbEnable"] = False
@@ -118,11 +114,8 @@ def apply_settings(settings):
     else:
         controls["AwbEnable"] = True
         controls["AwbMode"]= getattr(libcontrols.AwbModeEnum, wb_selection, 0) # 0 = 'Auto'
-        
-    if settings.get('af_mode', 'manual') == 'auto':
-        controls["AfMode"] = 2
-    else:
-        controls["AfMode"] = 0
+
+    controls["AfMode"] = 2 if settings.get('af_mode', 'manual') == 'auto' else 0
     controls["LensPosition"] = settings.get('lens_position', 0.58)
 
     try:
@@ -166,11 +159,9 @@ def update_controls_route():
             logger.warning("No settings provided in /controls POST request.")
             return jsonify({"error": "No settings provided"}), 400
 
-        # Update default_settings with new settings
         default_settings.update(settings)
         logger.debug(f"Received settings update: {settings}")
 
-        # Apply settings to the camera
         apply_settings(default_settings)
 
         return jsonify({"status": "Settings updated successfully"}), 200
@@ -230,7 +221,6 @@ def load_settings_route():
         logger.error(f"Error in /load_settings endpoint: {e}")
         return jsonify({"error": str(e)}), 500
 
-# New /status endpoint for CPU usage
 @app.route('/status', methods=['GET'])
 def status_route():
     try:
@@ -241,7 +231,6 @@ def status_route():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    # Start Flask server
     logger.info("Starting Flask server...")
     try:
         app.run(host='0.0.0.0', port=5000, threaded=True, debug=False, use_reloader=False)
