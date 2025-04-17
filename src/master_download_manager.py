@@ -51,13 +51,13 @@ def save_config(config):
         json.dump(config, cf)
 
 class SessionDownloaderApp:
-    def __init__(self, master, offline_mode=False, on_close_callback=None):
-        self.master = master
+    def __init__(self, root, offline_mode=False, on_close_callback=None):
+        self.root = root
         self.offline_mode = offline_mode  # Store offline mode
         title = "VolumanXR - Download Manager"
         if self.offline_mode:
             title += " (Offline Mode)"
-        self.master.title(title)
+        self.root.title(title)
         self.on_close_callback = on_close_callback  # Store the callback
 
         if os.path.exists(cfg.ICON_PATH):
@@ -83,9 +83,9 @@ class SessionDownloaderApp:
 
         # OFFLINE MODE: Skip starting remote hosts
         if not self.offline_mode:
-            su.start_remote_hosts(self.master, su.RemoteScript.DOWNLOADMANAGER)
+            su.start_remote_hosts(self.root, su.RemoteScript.DOWNLOADMANAGER)
 
-        self.master.deiconify()  # Show the main window
+        self.root.deiconify()  # Show the main window
         # Kick off initial session retrieval and schedule refresh
         self.get_sessions()
         self.schedule_refresh()
@@ -96,7 +96,7 @@ class SessionDownloaderApp:
 
     def create_menubar(self):
         """Creates a menubar with File and Help menus."""
-        menubar = tk.Menu(self.master)
+        menubar = tk.Menu(self.root)
 
         # File Menu
         file_menu = tk.Menu(menubar, tearoff=0)
@@ -109,7 +109,7 @@ class SessionDownloaderApp:
         help_menu.add_command(label="About", command=self.show_about)
         menubar.add_cascade(label="Help", menu=help_menu)
 
-        self.master.config(menu=menubar)
+        self.root.config(menu=menubar)
 
     def show_about(self):
         """Display an 'About' message."""
@@ -117,7 +117,7 @@ class SessionDownloaderApp:
 
     def create_widgets(self):
         # --- New: Local Session Download Location Frame ---
-        location_frame = ttk.LabelFrame(self.master, text="Download Location")
+        location_frame = ttk.LabelFrame(self.root, text="Download Location")
         location_frame.pack(fill="x", padx=10, pady=10)
 
         # Display the current (absolute) sessions folder
@@ -129,7 +129,7 @@ class SessionDownloaderApp:
         btn_change_location.pack(side="right", padx=5, pady=5)
 
         # --- Existing Session Controls Frame ---
-        frame = ttk.LabelFrame(self.master, text="Files")
+        frame = ttk.LabelFrame(self.root, text="Files")
         frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         self.refresh_button = ttk.Button(frame, text="Refresh", command=self.get_sessions)
@@ -191,7 +191,7 @@ class SessionDownloaderApp:
             self.btn_delete_remote.config(state="disabled")
             self.btn_delete_all_remote.config(state="disabled")
 
-        progress_frame = ttk.LabelFrame(self.master, text="Progress")
+        progress_frame = ttk.LabelFrame(self.root, text="Progress")
         progress_frame.pack(fill="x", padx=10, pady=10)
 
         self.progress_label = ttk.Label(progress_frame, text="Overall Progress:")
@@ -290,7 +290,7 @@ class SessionDownloaderApp:
                     for cam in CAMERA_LIST:
                         new_session_info[entry]["clip_sizes"][cam["name"]] = self.local_session_size_for_ip(entry, cam["ip"])
             sorted_sessions = sorted(local_sessions)
-            self.master.after(100, self.finish_sessions_update, sorted_sessions, new_session_info)
+            self.root.after(100, self.finish_sessions_update, sorted_sessions, new_session_info)
             return
 
         # Normal (online) mode: query all cameras via UDP.
@@ -313,7 +313,7 @@ class SessionDownloaderApp:
                     cam = size_futures[fut]
                     new_session_info[s]["clip_sizes"][cam["name"]] = fut.result()
 
-        self.master.after(100, self.finish_sessions_update, sorted_sessions, new_session_info)
+        self.root.after(100, self.finish_sessions_update, sorted_sessions, new_session_info)
 
     def finish_sessions_update(self, sorted_sessions, new_session_info):
         """Runs in main thread to store results and refresh the treeview."""
@@ -351,7 +351,7 @@ class SessionDownloaderApp:
         return None
 
     def schedule_refresh(self):
-        self.master.after(REFRESH_INTERVAL_MS, self.get_sessions)
+        self.root.after(REFRESH_INTERVAL_MS, self.get_sessions)
 
     # ---------------------------------------------------------------------
     # Session Tree Update
@@ -465,7 +465,7 @@ class SessionDownloaderApp:
                     futures.append(executor.submit(self.download_from_camera, session_name, ip))
                 for f in futures:
                     f.result()
-            self.master.after(0, lambda: self.download_complete(session_name))
+            self.root.after(0, lambda: self.download_complete(session_name))
 
         threading.Thread(target=do_downloads, daemon=True).start()
 
@@ -533,7 +533,7 @@ class SessionDownloaderApp:
             self.progress_bar['value'] = pct
             self.eta_label.config(text=f"ETA: {eta_str}")
 
-        self.master.after(100, update_ui)
+        self.root.after(100, update_ui)
 
     def recvall(self, sock, n):
         data = b''
@@ -580,7 +580,7 @@ class SessionDownloaderApp:
             messagebox.showwarning("Warning", "Select a session.")
             return
         session_name = self.session_tree.item(sel[0], "values")[0]
-        confirm = messagebox.askyesno("Confirm", f"Delete session '{session_name}' on all cameras?")
+        confirm = messagebox.askyesno("Confirm", f"WARNING: Delete session '{session_name}' on all cameras?")
         if not confirm:
             return
         request = {"action": "DELETE_SESSION", "session_name": session_name}
@@ -593,10 +593,10 @@ class SessionDownloaderApp:
             except:
                 pass
         messagebox.showinfo("Done", f"Requested deletion of '{session_name}' from all cameras.")
-        self.master.after(1000, self.get_sessions)
+        self.root.after(1000, self.get_sessions)
 
     def delete_all_sessions_remote(self):
-        confirm = messagebox.askyesno("Confirm", "Delete all sessions on all cameras?")
+        confirm = messagebox.askyesno("Confirm", "WARNING: Delete ALL sessions on all cameras?")
         if not confirm:
             return
         request = {"action": "DELETE_ALL_SESSIONS"}
@@ -609,7 +609,7 @@ class SessionDownloaderApp:
             except:
                 pass
         messagebox.showinfo("Done", "Requested deletion of all sessions from all cameras.")
-        self.master.after(1000, self.get_sessions)
+        self.root.after(1000, self.get_sessions)
 
     # ---------------------------------------------------------------------
     # Conversion
@@ -744,7 +744,7 @@ class SessionDownloaderApp:
         if not self.offline_mode:
             su.stop_remote_hosts(su.RemoteScript.DOWNLOADMANAGER)
         self.running = False
-        self.master.destroy()
+        self.root.destroy()
 
     @staticmethod
     def human_size(size_bytes):
