@@ -676,7 +676,7 @@ def update_dist_time():
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # Automatically add host keys
 
         # Connect to the remote host
-        client.connect('10.50.100.5', username=cfg.USERNAME, password=cfg.PASSWORD)
+        client.connect(cfg.NTP_DIST_IP, username=cfg.USERNAME, password=cfg.PASSWORD)
 
         # Prepare the command to set the time
         command = f'sudo date -s "{current_time}"'

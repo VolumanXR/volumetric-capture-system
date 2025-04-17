@@ -31,6 +31,8 @@ else:
 USERNAME = "voluman"
 PASSWORD = "xr"
 
+NTP_DIST_IP = '10.50.100.5'
+
 UTILS_FOLDER = os.path.join(MAIN_DIR, 'utils')
 CONFIG_FOLDER = os.path.join(MAIN_DIR, 'config')
 RES_FOLDER = os.path.join(MAIN_DIR, 'res')
@@ -38,6 +40,6 @@ DEFAULT_SESSIONS_FOLDER = os.path.join(get_app_data_dir(), 'sessions')
 
 CAMERA_LIST_FILE = os.path.join(CONFIG_FOLDER,'camera_list.json') 
 MASTER_SETTINGS_FILE = os.path.join(CONFIG_FOLDER,'camera_settings.json')
-TRANSFER_CONFIG_FILE = os.path.join(get_app_data_dir(),'transfer_config.json')
+TRANSFER_CONFIG_FILE = os.path.join(CONFIG_FOLDER,'transfer_config.json')
 LOGO_PATH = os.path.join(RES_FOLDER, "Voluman_Logo.png")
 ICON_PATH = os.path.join(RES_FOLDER, "Voluman_Icon.ico")
