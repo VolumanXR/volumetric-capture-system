@@ -7,22 +7,15 @@ import cv2
 import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
-from concurrent.futures import ThreadPoolExecutor
-import io
-import numpy as np
 import threading
 import queue
 import time
 import logging
-from pathlib import Path
-import paramiko
 from config import config as cfg
 from lib import ssh_utils as su
 
 cpu_cores = os.cpu_count()
 MAX_NORMAL_WORKERS = cpu_cores * 2
-
-SCRIPTNAME = 'remote_camera_controller.py'
 
 # Default settings
 default_settings = {
@@ -180,7 +173,9 @@ class MasterCameraController:
         
         su.start_remote_hosts(self.root, su.RemoteScript.CAMERACONTROLLER)
         
-        time.sleep(3)
+        self.root.deiconify()
+        self.root.update()
+        time.sleep(1)
         
         # If a selected_camera_id exists in settings, set it in the Camera ID input field
         if self.settings.get('selected_camera_id'):
@@ -189,12 +184,13 @@ class MasterCameraController:
                 self.camera_id_entry.insert(0, selected_cam_id)
                 self.selected_camera_id.set(selected_cam_id)
                 self.selected_camera_ip = self.camera_dict[selected_cam_id]
-
+        
         # Start the UI update loop
         self.update_video()
 
         # Start the metrics update loop
         self.update_metrics()
+
 
         # If we have a selected camera from startup, start video stream immediately
         if self.selected_camera_ip:
@@ -615,6 +611,7 @@ class MasterCameraController:
 if __name__ == '__main__':
     master_settings = load_master_settings()
     root = tk.Tk()
+    root.withdraw()
     if os.path.exists(cfg.ICON_PATH):
         root.iconbitmap(cfg.ICON_PATH)
     app = MasterCameraController(root, camera_dict, master_settings)

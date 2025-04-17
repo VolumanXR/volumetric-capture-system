@@ -7,28 +7,14 @@ import json
 import os
 import hashlib
 import zmq
-import uuid
-import statistics
-from pathlib import Path
-import paramiko
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
-import socket
-import ipaddress
-import subprocess
-import re
 import pygame
 from enum import Enum
-import sys
-from PIL import Image, ImageTk
 from config import config as cfg
 from lib import ssh_utils as su
 
-SESSIONS_DIR = 'sessions'
 EVENT_LOG = 'event_log_master.txt'
 MASTER_PC_IP = '0.0.0.0'  # Bind to all interfaces
 MASTER_PC_PORT = 50005
-SCRIPTNAME = 'remote_sm.py'
 
 LASTIME = time.time()
 
@@ -46,7 +32,9 @@ class DebugWindow(tk.Toplevel):
         self.on_close_callback = on_close_callback  # Store the callback
         self.geometry('1790x300')
         self.geometry('+0+700')
-        
+
+        if os.path.exists(cfg.ICON_PATH):
+            self.iconbitmap(cfg.ICON_PATH)
 
         self.create_widgets()
         # Override the window's "X" close to ensure we can also do cleanup:
@@ -104,9 +92,6 @@ class MainWindow:
         self.cameras = []         # Loaded from camera_list.json
         self.camera_status = {}   # ip -> { 'state', 'last_seen', 'storage_remaining_mb', 'sessions', ... }
         self.cameras = load_camera_list(cfg.CAMERA_LIST_FILE)
-
-        if not os.path.exists(SESSIONS_DIR):
-            os.makedirs(SESSIONS_DIR)
 
         self.context = zmq.Context()
         self.router_socket = self.context.socket(zmq.ROUTER)
@@ -284,8 +269,6 @@ class MainWindow:
                 message = json.loads(frames[1].decode())
                 self.handle_message(identity, message)
 
-
-
     def handle_message(self, identity, message):
         task = message.get('task')
         ip = message.get('ip', 'Unknown')
@@ -304,7 +287,6 @@ class MainWindow:
                 'storage_remaining_mb': 'N/A',
                 'sessions': []
             }
-            #self.update_status_tree(ip)
             self.log_event(f'Camera registered: {ip}')
 
         elif task == 'STATUS':
@@ -318,24 +300,6 @@ class MainWindow:
                 'storage_remaining_mb': storage_remaining,
                 'sessions': sessions
             })
-            #self.update_status_tree(ip)
-
-        elif task == 'FILE_TRANSFER_COMPLETE':
-            # For completeness; same as before
-            filename = message.get('file')
-            checksum = message.get('checksum')
-            local_file = os.path.join(SESSIONS_DIR, filename)
-            if os.path.exists(local_file):
-                local_checksum = self.calculate_checksum(local_file)
-                if local_checksum == checksum:
-                    self.log_event(f'File {filename} transferred and verified.')
-                else:
-                    self.log_event(f'Checksum mismatch for file {filename}.')
-            else:
-                self.log_event(f'File {filename} not found for checksum verification.')
-
-        elif task == 'SETTINGS_UPDATED':
-            self.log_event(f'Camera settings updated on {ip}.')
 
         # The Pi acknowledges the start time
         elif task == 'REC_START_ACK':
@@ -433,7 +397,7 @@ class MainWindow:
                 self.countdown_value.config(text=f"{remaining_second} s")
                 self.sound_still_triggered = False
                 self.sound_video_triggered = False
-                # TODO: Fix missing beeps after repeated rec start
+
                 if self.current_state == State.VIDEO_RECORDING:
                     if remaining_second > -3 and not self.sound_video_preroll_triggerd_3:
                         self.sound_video_preroll.play()
@@ -448,7 +412,7 @@ class MainWindow:
                         self.sound_video_preroll_triggerd_1 = True
                         print('Preroll Beep -1')
             else:
-                # If the time has passed, you could show "0 s" or "Started"
+
                 if self.current_state == State.STILL_RECORDING:
                     self.countdown_value.config(text="0 s")
                     if not self.sound_still_triggered:
@@ -511,7 +475,7 @@ class MainWindow:
         self.update_status_tree_all()
         self.update_connected_label()
         self.update_session_info_labels()
-        self.root.after(100, self.update_status_tree_loop) #Non-blocking update
+        self.root.after(100, self.update_status_tree_loop) 
 
     def send_message(self, ip, message_dict):
         """Send a ZMQ message to the camera with the given IP."""
@@ -541,7 +505,7 @@ class MainWindow:
         now = time.time()
         local_now = time.localtime(now)
         current_sec = local_now.tm_sec
-        # Next raw multiple of 5 from the current second
+
         next_5 = (current_sec // 5 + 1) * 5
         if next_5 >= 60:
             # we have to bump to next minute
@@ -656,6 +620,7 @@ class MainWindow:
     def start_up(self):
         su.update_dist_time()
         su.start_remote_hosts(self.root, su.RemoteScript.CAPTURECONTROLLER)
+        self.root.deiconify()  # Show the main window after startup tasks
 
     def on_close(self):
         su.stop_remote_hosts(su.RemoteScript.CAPTURECONTROLLER)
@@ -678,6 +643,7 @@ def load_camera_list(json_path):
 
 if __name__ == '__main__':
     root = tk.Tk()
+    root.withdraw()
     app = MainWindow(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
     

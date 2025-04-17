@@ -6,15 +6,11 @@ import json
 import os
 import time
 import math
-import struct
 import threading
-from pathlib import Path
-import paramiko
 from concurrent.futures import ThreadPoolExecutor
 import subprocess
 import shutil
 import sys
-from PIL import Image, ImageTk
 import zmq   # <-- New import for ZeroMQ
 from config import config as cfg
 from lib import ssh_utils as su
@@ -62,8 +58,10 @@ class SessionDownloaderApp:
         if self.offline_mode:
             title += " (Offline Mode)"
         self.master.title(title)
-
         self.on_close_callback = on_close_callback  # Store the callback
+
+        if os.path.exists(cfg.ICON_PATH):
+            self.root.iconbitmap(cfg.ICON_PATH)
 
         # Load configuration for the sessions folder.
         self.config = load_config()
@@ -87,6 +85,7 @@ class SessionDownloaderApp:
         if not self.offline_mode:
             su.start_remote_hosts(self.master, su.RemoteScript.DOWNLOADMANAGER)
 
+        self.master.deiconify()  # Show the main window
         # Kick off initial session retrieval and schedule refresh
         self.get_sessions()
         self.schedule_refresh()
@@ -761,8 +760,7 @@ class SessionDownloaderApp:
 
 def main():
     root = tk.Tk()
-    if os.path.exists(cfg.ICON_PATH):
-        root.iconbitmap(cfg.ICON_PATH)
+    root.withdraw()
     app = SessionDownloaderApp(root, offline_mode=OFFLINE_MODE)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
     root.mainloop()
