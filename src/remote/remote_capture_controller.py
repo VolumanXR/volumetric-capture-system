@@ -15,7 +15,6 @@ import datetime
 from picamera2 import Picamera2, Preview
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import FileOutput
-
 from libcamera import controls as libcontrols
 
 EVENT_LOG = 'event_log.txt'
@@ -51,7 +50,6 @@ my_ip = get_ip_address()
 
 MASTER_PC_PORT = 50005
 
-# State machine states
 STANDBY = 'STANDBY'
 PREPARING = 'PREPARING'
 RECORDING = 'RECORDING'
@@ -153,6 +151,7 @@ def apply_settings(settings):
     else:
         controls["AwbEnable"] = True
         controls["AwbMode"]= getattr(libcontrols.AwbModeEnum, wb_selection, 0) # 0 = 'Auto'
+        controls["AwbMode"]= getattr(libcontrols.AwbModeEnum, wb_selection, 0)
     
     if settings.get('af_mode', 'manual') == 'auto':
         controls["AfMode"] = 2
@@ -172,7 +171,6 @@ def apply_settings(settings):
         log_event(f"Error applying settings: {e}")
 
 def configure_camera(custom_resolution=None):
-    
     if (custom_resolution is not None):
         if (custom_resolution == 'FullHD'):
             width = 1920
@@ -208,7 +206,6 @@ def get_storage_remaining():
     return int(remaining)
 
 def get_session_list():
-    
     files = [
         f for f in os.listdir(STORAGE_PATH)
         if f.endswith(('.mp4', '.jpg'))
@@ -265,27 +262,20 @@ def send_status():
 def sync_with_ntp():
     try:
         result = subprocess.run(['sudo', 'chronyc', 'makestep'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(result.stdout.decode())  # Print the standard output of the command
+        print(result.stdout.decode())
     except subprocess.CalledProcessError as e:
         print(f"Error occurred: {e}")
-        print(f"stderr: {e.stderr.decode()}")  # Print the standard error output if any
+        print(f"stderr: {e.stderr.decode()}")
 
 def get_formatted_timecode(framerate, timecode_start_time):
-    """
-    Returns the current system time formatted as a timecode string.
-    Format: HH:MM:SS:FF where FF is the frame number within the current second.
-    """
     now = timecode_start_time
-    frame_fraction = now.microsecond / 1_000_000  # Fraction of the current second
+    frame_fraction = now.microsecond / 1_000_000
     ff = round(frame_fraction * framerate)
     timecode = now.strftime(f"%H:%M:%S:{ff:02d}")
     return timecode
 
 def record_video(session_name, bitrate, start_time):
     controls = {}
-    """
-    At start_time, begin recording with the specified settings.
-    """
     sync_with_ntp()
 
     global state, recording_file
@@ -346,20 +336,16 @@ def record_video(session_name, bitrate, start_time):
                     dropped_frames = round(timestamp_interval / frame_time)
                     missing_frames.extend(range(frame_number, frame_number + dropped_frames))
 
-                    # Move frame number forward
                     frame_number = frame_number+ dropped_frames
 
-                    # Store actual frame timestamp
                     frame_timestamps[frame_number] = metadata["SensorTimestamp"]
                     frame_number = frame_number + 1
         
     picam2.stop_recording()
 
-    # Insert missing frames after recording
     for dropped_frame in missing_frames:
         frame_timestamps[dropped_frame] = 'dropped'
 
-    # Ensure frame numbers are sorted correctly
     frame_timestamps = dict(sorted(frame_timestamps.items()))
     
     metadata_file = os.path.splitext(recording_file)[0]
@@ -378,7 +364,6 @@ def ffmpeg_processing():
     recording_file_name = os.path.splitext(recording_file)[0]
     recording_file_name = recording_file_name + '.mp4'
     
-        # Define the FFmpeg command
     ffmpeg_cmd = [
         'ffmpeg',
         '-y',  # Overwrite output file if it exists
@@ -390,30 +375,21 @@ def ffmpeg_processing():
         recording_file_name  # Output file
     ]
     
-    # Run the FFmpeg command
     try:
         result = subprocess.run(ffmpeg_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         log_event(f'FFmpeg processing complete: {recording_file_name}')
-        # Delete the original .h264 file
         os.remove(recording_file)
     except subprocess.CalledProcessError as e:
         log_event(f'Error processing with FFmpeg: {e}')
         log_event(f'stderr: {e.stderr.decode()}')
-        
-        
 
 def postprocess_video():
-    """
-    Stop the recording if we are in RECORDING state.
-    """
-    
     global state
     if state == RECORDING:
         state = STANDBY
         log_event('Recording stopped.')
         time.sleep(0.5)
     
-        # Add FFmpeg processing
         try:
             ffmpeg_processing()
             log_event(f'FFmpeg processing complete: {recording_file}')
@@ -421,17 +397,12 @@ def postprocess_video():
             log_event(f'Error processing with FFmpeg: {e}')
 
 def record_still(session_name, start_time, session_resolution):
-    """
-    At start_time, capture a single still image (JPEG).
-    """
-    # Force sync with NTP server
     sync_with_ntp()
     
     global state
     state = PREPARING_STILL
     log_event("Preparing to capture still.")
 
-    # Acknowledge to Master
     ack_msg = {
         'task': 'REC_STILL_ACK',
         'ip': my_ip,
@@ -439,11 +410,9 @@ def record_still(session_name, start_time, session_resolution):
     }
     send_message(ack_msg)
 
-    # Just capture a file in the current running config
     ip_suffix = my_ip.split('.')[-1]
     image_file = os.path.join(STORAGE_PATH, f"{session_name}_{ip_suffix}.jpg")
 
-    # We can do this on the live video config
     picam2.stop()
     configure_camera(session_resolution)
 
@@ -454,7 +423,6 @@ def record_still(session_name, start_time, session_resolution):
     picam2.capture_file(image_file)
     log_event(f"Still image captured: {image_file}")
 
-    # Return to STANDBY
     state = STANDBY
 
 def handle_messages():
@@ -495,33 +463,23 @@ def handle_messages():
             break
 
 def status_update_loop():
-    """
-    Periodically send status to the master.
-    """
     while True:
         send_status()
         time.sleep(1)
 
 def sync_with_ntp_loop():
-    """
-    Periodically sync with NTP server.
-    """
     while True:
         if state == STANDBY:
             sync_with_ntp()
         time.sleep(60*10)
 
-# Function to log events
 def log_event(message):
-    print(message)  # Replace with your actual logging mechanism
+    print(message)
 
-# Function to handle SIGINT
 def sigint_handler(signum, frame):
     log_event("SIGINT received. Shutting down gracefully.")
-    # Perform cleanup here
     cleanup_and_exit()
 
-# Cleanup function
 def cleanup_and_exit():
     log_event("Stopping threads and cleaning up resources...")
     picam2.close()
