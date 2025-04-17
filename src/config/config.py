@@ -24,18 +24,18 @@ def get_app_data_dir(app_name: str = "VolumanXR"):
     return app_data_dir
 
 if getattr(sys, 'frozen', False):
-    MAIN_DIR = Path(sys._MEIPASS)
+    ROOT_DIR = Path(sys._MEIPASS)
 else:
-    MAIN_DIR = Path(__file__).resolve().parent.parent
+    ROOT_DIR = Path(__file__).resolve().parent.parent
 
 USERNAME = "voluman"
 PASSWORD = "xr"
 
 NTP_DIST_IP = '10.50.100.5'
 
-UTILS_FOLDER = os.path.join(MAIN_DIR, 'utils')
-CONFIG_FOLDER = os.path.join(MAIN_DIR, 'config')
-RES_FOLDER = os.path.join(MAIN_DIR, 'res')
+UTILS_FOLDER = os.path.join(ROOT_DIR, 'utils')
+CONFIG_FOLDER = os.path.join(ROOT_DIR, 'config')
+RES_FOLDER = os.path.join(ROOT_DIR, 'res')
 DEFAULT_SESSIONS_FOLDER = os.path.join(get_app_data_dir(), 'sessions')
 
 CAMERA_LIST_FILE = os.path.join(CONFIG_FOLDER,'camera_list.json') 

@@ -121,17 +121,17 @@ class MainWindow:
         self.ip_to_identity = {}
 
         pygame.mixer.init()
-        self.sound_still_trigger = pygame.mixer.Sound(os.path.join(cfg.MAIN_DIR, 'res','202741__preilly11__eos-shutter-1.wav'))
+        self.sound_still_trigger = pygame.mixer.Sound(os.path.join(cfg.RES_FOLDER,'202741__preilly11__eos-shutter-1.wav'))
         self.sound_still_triggered = False
 
         # TODO: Change sound for video recording
-        self.sound_video_preroll = pygame.mixer.Sound(os.path.join(cfg.MAIN_DIR, 'res','short_beep.wav'))
+        self.sound_video_preroll = pygame.mixer.Sound(os.path.join(cfg.RES_FOLDER,'short_beep.wav'))
 
         self.sound_video_preroll_triggerd_3 = False
         self.sound_video_preroll_triggerd_2 = False
         self.sound_video_preroll_triggerd_1 = False
 
-        self.sound_video_trigger = pygame.mixer.Sound(os.path.join(cfg.MAIN_DIR, 'res','long_beep.wav'))
+        self.sound_video_trigger = pygame.mixer.Sound(os.path.join(cfg.RES_FOLDER,'long_beep.wav'))
         self.sound_video_triggered = False
 
         self.create_widgets()
