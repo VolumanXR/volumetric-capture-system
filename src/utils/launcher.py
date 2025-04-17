@@ -8,13 +8,11 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 
-# ----------------------------------------------------
-# Configuration
-# ----------------------------------------------------
-USERNAME = "voluman"
-PASSWORD = "xr"
-SCRIPT_DIR = Path(__file__).resolve().parent
-CAMERA_LIST_JSON = os.path.join(SCRIPT_DIR, 'camera_list.json') 
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+from config import config as cfg
 
 # ----------------------------------------------------
 # Optional: only import tkinter if needed
@@ -69,7 +67,7 @@ def connect_ssh(host):
     """
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname=host, username=USERNAME, password=PASSWORD, timeout=5)
+    ssh.connect(hostname=host, username=cfg.USERNAME, password=cfg.PASSWORD, timeout=5)
     return ssh
 
 # ----------------------------------------------------
@@ -113,6 +111,47 @@ def stop_script(host, script_name):
             print(f"[{host}] Stopped {script_name}.")
     except Exception as e:
         print(f"[{host}] Failed to stop {script_name}: {e}")
+    finally:
+        if ssh:
+            ssh.close()
+
+def start_script(host, script_name):
+    """
+    Start the script on the Pi in the background (nohup).
+    """
+    ssh = None
+    try:
+        ssh = connect_ssh(host)
+        cmd = (
+            f"nohup python3 /home/voluman/{script_name} "
+            f"> /home/voluman/{script_name}.log 2>&1 &"
+        )
+        _, err = ssh_command(ssh, cmd)
+        if err:
+            print(f"[{host}] Error starting {script_name}: {err}")
+        else:
+            print(f"[{host}] Started {script_name}.")
+    except Exception as e:
+        print(f"[{host}] Failed to start {script_name}: {e}")
+    finally:
+        if ssh:
+            ssh.close()
+
+def delete_script(host, script_name):
+    """
+    Delete the specified script from the Pi.
+    """
+    ssh = None
+    try:
+        ssh = connect_ssh(host)
+        cmd = f"rm /home/voluman/{script_name}"
+        _, err = ssh_command(ssh, cmd)
+        if err:
+            print(f"[{host}] Error deleting {script_name}: {err}")
+        else:
+            print(f"[{host}] Deleted {script_name}.")
+    except Exception as e:
+        print(f"[{host}] Failed to delete {script_name}: {e}")
     finally:
         if ssh:
             ssh.close()
@@ -168,6 +207,7 @@ def main():
     Possible commands:
       - start <script_name>
       - stop <script_name>
+      - delete <script_name>
       - reboot
       - upload [<local_script_path>]
         If <local_script_path> is not given, show file explorer.
@@ -176,19 +216,20 @@ def main():
         print("Usage:\n"
               f"  {sys.argv[0]} start <script_name>\n"
               f"  {sys.argv[0]} stop <script_name>\n"
+              f"  {sys.argv[0]} delete <script_name>\n"
               f"  {sys.argv[0]} reboot\n"
               f"  {sys.argv[0]} upload [<local_script_path>]\n")
         sys.exit(1)
 
     command = sys.argv[1].lower()
 
-    if command not in ["start", "stop", "reboot", "upload"]:
+    if command not in ["start", "stop", "reboot", "upload", "delete"]:
         print("Unknown command. Must be one of: start, stop, reboot, upload.")
         sys.exit(1)
 
     # If the command needs a script name or path, handle that
     script_arg = None
-    if command in ["start", "stop"]:
+    if command in ["start", "stop", "delete"]:
         # These commands require a script_name
         if len(sys.argv) < 3:
             print(f"Error: '{command}' command requires a script name.")
@@ -208,9 +249,9 @@ def main():
 
     # Load camera_list
     try:
-        camera_list = load_camera_list(CAMERA_LIST_JSON)
+        camera_list = load_camera_list(cfg.CAMERA_LIST_FILE)
     except Exception as e:
-        print(f"Failed to load camera list from {CAMERA_LIST_JSON}: {e}")
+        print(f"Failed to load camera list from {cfg.CAMERA_LIST_FILE}: {e}")
         sys.exit(1)
     
     cpu_cores = os.cpu_count()
@@ -229,6 +270,8 @@ def main():
                 executor.submit(reboot_pi, host_ip)
             elif command == "upload":
                 executor.submit(upload_script, host_ip, script_arg)
+            elif command == "delete":
+                executor.submit(delete_script, host_ip, script_arg)
 
 if __name__ == "__main__":
     main()
