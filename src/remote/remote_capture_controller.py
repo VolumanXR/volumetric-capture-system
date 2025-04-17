@@ -22,7 +22,6 @@ EVENT_LOG = 'event_log.txt'
 STORAGE_PATH = 'Recordings'
 CAMERA_SETTINGS_FILE = 'camera_settings.json'
 
-# the script gets called with nohub python3 remote_sm.py & the ip address of the master pc as the first argument, so get the MASTER_PC_IP from the first argument
 def get_master_ip_address():
     if len(sys.argv) > 1:
         return sys.argv[1]
@@ -36,7 +35,6 @@ def get_custom_lens_position():
 MASTER_PC_IP = get_master_ip_address()
 CUSTOM_LENS_POSITION = get_custom_lens_position()
 
-# Decide MASTER_PC_IP based on our IP
 def get_ip_address():
     import netifaces
     interfaces = netifaces.interfaces()
@@ -58,7 +56,6 @@ STANDBY = 'STANDBY'
 PREPARING = 'PREPARING'
 RECORDING = 'RECORDING'
 PREPARING_STILL = 'PREPARING_STILL'
-TRANSMITTING = 'TRANSMITTING'  # Not used here, but left for completeness
 
 state = STANDBY
 session_name = ''
@@ -212,13 +209,6 @@ def get_storage_remaining():
 
 def get_session_list():
     
-    # sessions = set()
-    # for filename in os.listdir(STORAGE_PATH):
-    #     if filename.endswith(('.h264', '.mp4', '.jpg', '.jpeg', '.png')):
-    #         session = filename.split('_')[0]
-    #         sessions.add(session)
-    # return list(sessions)
-    
     files = [
         f for f in os.listdir(STORAGE_PATH)
         if f.endswith(('.mp4', '.jpg'))
@@ -256,7 +246,6 @@ dealer_socket.connect(f"tcp://{MASTER_PC_IP}:{MASTER_PC_PORT}")
 def send_message(message_dict):
     dealer_socket.send_json(message_dict)
 
-# Register with the master
 reg_msg = {
     'task': 'REGISTER',
     'ip': my_ip
@@ -274,9 +263,7 @@ def send_status():
     send_message(msg)
 
 def sync_with_ntp():
-        # Force synch with NTP server
     try:
-        # Running the 'sudo chronyc makestep' command
         result = subprocess.run(['sudo', 'chronyc', 'makestep'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         print(result.stdout.decode())  # Print the standard output of the command
     except subprocess.CalledProcessError as e:
@@ -294,7 +281,7 @@ def get_formatted_timecode(framerate, timecode_start_time):
     timecode = now.strftime(f"%H:%M:%S:{ff:02d}")
     return timecode
 
-def recording_starter(session_name, bitrate, start_time):
+def record_video(session_name, bitrate, start_time):
     controls = {}
     """
     At start_time, begin recording with the specified settings.
@@ -308,7 +295,6 @@ def recording_starter(session_name, bitrate, start_time):
     picam2.stop()
     configure_camera()
 
-    # Acknowledge to Master that we received the start_time correctly
     ack_msg = {
         'task': 'REC_START_ACK',
         'ip': my_ip,
@@ -316,8 +302,6 @@ def recording_starter(session_name, bitrate, start_time):
     }
     send_message(ack_msg)
     
-    
-    # Actual start of recording
     ip_suffix = my_ip.split('.')[-1]
     recording_file = os.path.join(STORAGE_PATH, f'{session_name}_{ip_suffix}.h264')
     picam2.stop()
@@ -325,11 +309,7 @@ def recording_starter(session_name, bitrate, start_time):
     global fps
     fps = default_settings['frame_rate']
 
-    # We can set a new encoder
     local_encoder = H264Encoder(int(bitrate) * 1000000)
-
-    # while time.time() < start_time:
-    #     time.sleep(0.015)
     
     picam2.start_encoder(local_encoder, recording_file)
     
@@ -338,23 +318,19 @@ def recording_starter(session_name, bitrate, start_time):
     start = time.perf_counter()
     picam2.start()
     offset = time.perf_counter() - (start / 2)
-    timecode_start_time = datetime.datetime.now() # Verbesserung gegenüber des alten Codes
-    # timecode_start_time = timecode_start_time - datetime.timedelta(seconds=offset)
+    timecode_start_time = datetime.datetime.now() 
     
     state = RECORDING
     log_event(f'Recording started: {recording_file}')
     
-    # Save timestamps in realtion to the frames in a json file which is names the same as the recording file
-    
-    frame_timestamps = {}  # Dictionary to store frame timestamps
-    missing_frames = []  # List to store missing frame numbers
+    frame_timestamps = {}  
+    missing_frames = []  
     frame_number = 0
     
     while (state == RECORDING):
         metadata = picam2.capture_metadata()
         
         if ("SensorTimestamp" in metadata and metadata is not None):
-            # last entry of frame_timestamps
             lastSensorTimestamp = frame_timestamps.get(frame_number-1, None)
             if lastSensorTimestamp is None:
                 frame_timestamps[frame_number] = metadata["SensorTimestamp"]
@@ -368,8 +344,6 @@ def recording_starter(session_name, bitrate, start_time):
                     frame_number = frame_number + 1
                 else:
                     dropped_frames = round(timestamp_interval / frame_time)
-
-                    # Keep track of missing frame numbers
                     missing_frames.extend(range(frame_number, frame_number + dropped_frames))
 
                     # Move frame number forward
@@ -428,7 +402,7 @@ def ffmpeg_processing():
         
         
 
-def stop_recording_func():
+def postprocess_video():
     """
     Stop the recording if we are in RECORDING state.
     """
@@ -446,7 +420,7 @@ def stop_recording_func():
         except Exception as e:
             log_event(f'Error processing with FFmpeg: {e}')
 
-def still_starter(session_name, start_time, session_resolution):
+def record_still(session_name, start_time, session_resolution):
     """
     At start_time, capture a single still image (JPEG).
     """
@@ -494,17 +468,17 @@ def handle_messages():
                 s_name = message.get('session_name')
                 bitrate = message.get('bitrate', '15000')
                 start_t = message.get('start_time', time.time()+5)
-                t = threading.Thread(target=recording_starter, args=(s_name, bitrate, start_t), daemon=True)
+                t = threading.Thread(target=record_video, args=(s_name, bitrate, start_t), daemon=True)
                 t.start()
 
             elif task == 'REC_STOP':
-                stop_recording_func()
+                postprocess_video()
 
             elif task == 'REC_STILL':
                 s_name = message.get('session_name')
                 start_t = message.get('start_time', time.time()+5)
                 s_res = message.get('resolution', 'FullHD')
-                t = threading.Thread(target=still_starter, args=(s_name, start_t, s_res), daemon=True)
+                t = threading.Thread(target=record_still, args=(s_name, start_t, s_res), daemon=True)
                 t.start()
 
             elif task == 'UPDATE_SETTINGS':
@@ -516,9 +490,6 @@ def handle_messages():
                     'ip': my_ip
                 }
                 send_message(resp)
-
-            # We do not need the old SYNC_REQUEST logic anymore, 
-            # because we assume NTP is active. So we remove it.
 
         except:
             break
@@ -553,27 +524,19 @@ def sigint_handler(signum, frame):
 # Cleanup function
 def cleanup_and_exit():
     log_event("Stopping threads and cleaning up resources...")
-    # If you have any specific cleanup logic, add it here.
-    # Threads with `daemon=True` will exit automatically when the main program exits.
     picam2.close()
     log_event("Shutdown complete.")
     sys.exit(0)
 
-# update ntp time at start
 sync_with_ntp()
 
-# Register SIGINT handler
 signal.signal(signal.SIGINT, sigint_handler)
 
-# Start threads
 msg_thread = threading.Thread(target=handle_messages, daemon=True)
 msg_thread.start()
 
 status_thread = threading.Thread(target=status_update_loop, daemon=True)
 status_thread.start()
-
-# ntp_thread = threading.Thread(target=sync_with_ntp_loop, daemon=True)
-# ntp_thread.start()
 
 try:
     log_event("Program started. Press Ctrl+C to exit.")
