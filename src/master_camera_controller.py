@@ -1,4 +1,3 @@
-# master_camera_controller.py - v10
 import sys
 import json
 import os
@@ -17,7 +16,6 @@ from lib import ssh_utils as su
 cpu_cores = os.cpu_count()
 MAX_NORMAL_WORKERS = cpu_cores * 2
 
-# Default settings
 default_settings = {
     'width': 1280,
     'height': 720,
@@ -40,7 +38,6 @@ default_settings = {
     'lens_position': 0.66
 }
 
-# Mapping of preview resolutions to heights
 PREVIEW_RESOLUTIONS = {
     '240p': 240,
     '360p': 360,
@@ -49,13 +46,11 @@ PREVIEW_RESOLUTIONS = {
     '1080p': 1080
 }
 
-# Configure Logging
-logging.basicConfig(level=logging.ERROR,  # Set to ERROR to reduce verbosity
+logging.basicConfig(level=logging.ERROR,
                     format='%(asctime)s %(levelname)s %(name)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger("MasterCameraController")
 
-# Load camera list from camera_list.json
 def load_camera_list():
     if not os.path.exists(cfg.CAMERA_LIST_FILE):
         messagebox.showerror("Error", f"{cfg.CAMERA_LIST_FILE} not found.")
@@ -68,7 +63,6 @@ def load_camera_list():
                 name = cam.get('name')
                 ip = cam.get('ip')
                 if name and ip:
-                    # Extract ID from name, e.g., "CAM01" -> "01"
                     cam_id = ''.join(filter(str.isdigit, name))
                     camera_dict[cam_id] = ip
             return camera_dict
@@ -78,13 +72,11 @@ def load_camera_list():
 
 camera_dict = load_camera_list()
 
-# Load master settings from camera_settings.json if it exists
 def load_master_settings():
     if os.path.exists(cfg.MASTER_SETTINGS_FILE):
         try:
             with open(cfg.MASTER_SETTINGS_FILE, 'r') as f:
                 saved_settings = json.load(f)
-            # Merge saved settings into default settings
             merged_settings = default_settings.copy()
             merged_settings.update(saved_settings)
             return merged_settings
@@ -94,7 +86,6 @@ def load_master_settings():
     else:
         return default_settings.copy()
 
-# Save master settings to camera_settings.json
 def save_master_settings(settings):
     try:
         with open(cfg.MASTER_SETTINGS_FILE, 'w') as f:
@@ -103,31 +94,24 @@ def save_master_settings(settings):
     except Exception as e:
         logger.error(f"Failed to save settings to {cfg.MASTER_SETTINGS_FILE}: {e}")
 
-# Function to send control settings to a specific camera
 def send_controls_to_camera(ip, settings):
     try:
         control_endpoint = f'http://{ip}:5000/controls'
         response = requests.post(control_endpoint, json=settings, timeout=5)
         if response.status_code != 200:
-            logger = logging.getLogger("send_controls_to_camera")
             logger.error(f"Failed to update controls for {ip}: {response.text}")
     except Exception as e:
-        logger = logging.getLogger("send_controls_to_camera")
         logger.error(f"Failed to update controls for {ip}: {e}")
 
-# Function to save settings to a specific camera
 def save_settings_remote(ip, settings):
     try:
         save_endpoint = f'http://{ip}:5000/save_settings'
         response = requests.post(save_endpoint, json=settings, timeout=5)
         if response.status_code != 200:
-            logger = logging.getLogger("save_settings_remote")
             logger.error(f"Failed to save settings for {ip}: {response.text}")
     except Exception as e:
-        logger = logging.getLogger("save_settings_remote")
         logger.error(f"Failed to save settings for {ip}: {e}")
 
-# Function to load settings from a specific camera
 def load_settings_from_camera(ip):
     try:
         load_endpoint = f'http://{ip}:5000/load_settings'
@@ -135,11 +119,9 @@ def load_settings_from_camera(ip):
         if response.status_code == 200:
             return response.json()
         else:
-            logger = logging.getLogger("load_settings_from_camera")
             logger.error(f"Failed to load settings for {ip}: {response.text}")
             return default_settings.copy()
     except Exception as e:
-        logger = logging.getLogger("load_settings_from_camera")
         logger.error(f"Failed to load settings for {ip}: {e}")
         return default_settings.copy()
 
@@ -149,26 +131,22 @@ class MasterCameraController:
         self.root.title("VolumanXR - Camera Controller")
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-        self.camera_dict = camera_dict  # Mapping of camera ID to IP
+        self.camera_dict = camera_dict
         self.selected_camera_id = tk.StringVar()
         self.selected_camera_ip = None
 
-        # Initialize settings from master_settings
         self.settings = master_settings.copy()
 
-        # Initialize video stream variables
-        self.frame_queue = queue.Queue(maxsize=1)  # Minimal buffering
+        self.frame_queue = queue.Queue(maxsize=1)
         self.stop_event = threading.Event()
         self.video_thread = None
 
-        # Initialize metrics variables
         self.frame_count = 0
         self.total_bytes = 0
         self.fps = 0
-        self.bandwidth = 0  # in MB/s
-        self.cpu_usage = 0  # in %
+        self.bandwidth = 0
+        self.cpu_usage = 0
 
-        # Initialize GUI elements
         self.create_gui()
         
         su.start_remote_hosts(self.root, su.RemoteScript.CAMERACONTROLLER)
@@ -177,7 +155,6 @@ class MasterCameraController:
         self.root.update()
         time.sleep(1)
         
-        # If a selected_camera_id exists in settings, set it in the Camera ID input field
         if self.settings.get('selected_camera_id'):
             selected_cam_id = self.settings['selected_camera_id']
             if selected_cam_id in self.camera_dict:
@@ -185,44 +162,31 @@ class MasterCameraController:
                 self.selected_camera_id.set(selected_cam_id)
                 self.selected_camera_ip = self.camera_dict[selected_cam_id]
         
-        # Start the UI update loop
         self.update_video()
-
-        # Start the metrics update loop
         self.update_metrics()
 
-
-        # If we have a selected camera from startup, start video stream immediately
         if self.selected_camera_ip:
             self.start_video_stream()
 
     def create_gui(self):
-        # Main container frame
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Configure grid
         main_frame.columnconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=2)
         main_frame.rowconfigure(1, weight=1)
 
-        # Live View Settings Frame (top-left)
         live_view_frame = ttk.LabelFrame(main_frame, text="Live View Settings")
         live_view_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10), pady=(0, 10))
 
-        # Camera Settings Frame (below Live View)
         camera_settings_frame = ttk.LabelFrame(main_frame, text="Camera Settings")
         camera_settings_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 10))
 
-        # Video Frame (right side)
         video_frame = ttk.LabelFrame(main_frame, text="Live Video")
         video_frame.grid(row=0, column=1, rowspan=2, sticky="nsew")
         main_frame.rowconfigure(0, weight=0)
         main_frame.rowconfigure(1, weight=1)
 
-        # --- Live View Settings Widgets ---
-
-        # Camera ID Selection
         ttk.Label(live_view_frame, text="Camera ID:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
         self.camera_id_entry = ttk.Entry(live_view_frame, width=10)
         self.camera_id_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
@@ -230,7 +194,6 @@ class MasterCameraController:
         select_button = ttk.Button(live_view_frame, text="Select", command=self.select_camera)
         select_button.grid(row=0, column=2, padx=5, pady=5)
 
-        # Preview Resolution Dropdown
         preview_res_label = ttk.Label(live_view_frame, text="Preview Resolution:")
         preview_res_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
 
@@ -239,16 +202,12 @@ class MasterCameraController:
 
         def preview_res_selection_changed(value):
             self.update_controls()
-            # If camera is selected, restart video stream
             if self.selected_camera_ip:
                 self.start_video_stream()
 
         self.preview_res_menu = ttk.OptionMenu(live_view_frame, self.preview_res_var, self.preview_res_var.get(), *preview_res_options, command=preview_res_selection_changed)
         self.preview_res_menu.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
-        # --- Camera Settings Widgets ---
-
-        # Resolution settings
         resolution_frame = ttk.Frame(camera_settings_frame)
         resolution_frame.pack(fill="x", padx=5, pady=5)
 
@@ -265,47 +224,38 @@ class MasterCameraController:
         apply_resolution_button = ttk.Button(resolution_frame, text="Apply", command=self.apply_resolution)
         apply_resolution_button.grid(row=2, column=0, columnspan=2, pady=5)
 
-        # Frame Rate
         self.fps_scale = tk.Scale(camera_settings_frame, from_=1, to=60, orient=tk.HORIZONTAL, label="Frame Rate (FPS)", command=lambda x: self.update_controls())
         self.fps_scale.set(self.settings.get('frame_rate', 25))
         self.fps_scale.pack(fill="x", padx=5, pady=5)
 
-        # Shutter Angle
         self.shutter_angle_scale = tk.Scale(camera_settings_frame, from_=1, to=360, orient=tk.HORIZONTAL, label="Shutter Angle (degrees)", command=lambda x: self.update_controls())
         self.shutter_angle_scale.set(self.settings.get('shutter_angle', 180))
         self.shutter_angle_scale.pack(fill="x", padx=5, pady=5)
 
-        # ISO (Analogue Gain)
         self.iso_scale = tk.Scale(camera_settings_frame, from_=100, to=6400, orient=tk.HORIZONTAL, label="ISO", command=lambda x: self.update_controls())
         self.iso_scale.set(self.settings.get('iso', 100))
         self.iso_scale.pack(fill="x", padx=5, pady=5)
         
-        # Auto Exposure
         self.ae_var = tk.BooleanVar(value=self.settings.get('auto_exposure', True))
         self.ae_check = ttk.Checkbutton(camera_settings_frame, text="Auto Exposure", variable=self.ae_var, command=self.update_controls)
         self.ae_check.pack(anchor='w', padx=5, pady=5)
 
-        # Brightness
         self.brightness_scale = tk.Scale(camera_settings_frame, from_=-100, to=100, orient=tk.HORIZONTAL, label="Brightness", command=lambda x: self.update_controls())
         self.brightness_scale.set(self.settings.get('brightness', 0))
         self.brightness_scale.pack(fill="x", padx=5, pady=5)
 
-        # Contrast
         self.contrast_scale = tk.Scale(camera_settings_frame, from_=0, to=200, orient=tk.HORIZONTAL, label="Contrast", command=lambda x: self.update_controls())
         self.contrast_scale.set(self.settings.get('contrast', 100))
         self.contrast_scale.pack(fill="x", padx=5, pady=5)
 
-        # Saturation
         self.saturation_scale = tk.Scale(camera_settings_frame, from_=0, to=200, orient=tk.HORIZONTAL, label="Saturation", command=lambda x: self.update_controls())
         self.saturation_scale.set(self.settings.get('saturation', 100))
         self.saturation_scale.pack(fill="x", padx=5, pady=5)
 
-        # Sharpness
         self.sharpness_scale = tk.Scale(camera_settings_frame, from_=0, to=200, orient=tk.HORIZONTAL, label="Sharpness", command=lambda x: self.update_controls())
         self.sharpness_scale.set(self.settings.get('sharpness', 100))
         self.sharpness_scale.pack(fill="x", padx=5, pady=5)
         
-        # Auto Focus Mode Dropdown
         af_label = ttk.Label(camera_settings_frame, text="Auto Focus Mode:")
         af_label.pack(anchor='w', padx=5, pady=5)
         
@@ -318,12 +268,10 @@ class MasterCameraController:
         self.af_menu = ttk.OptionMenu(camera_settings_frame, self.af_var, self.af_var.get(), *af_options, command=af_selection_changed)
         self.af_menu.pack(anchor='w', padx=5, pady=5)
         
-        # Lens Position Slider
         self.lens_position_scale = tk.Scale(camera_settings_frame, from_=0.0, to=1.0, resolution=0.01, orient=tk.HORIZONTAL, label="Lens Position", command=lambda x: self.update_controls())
         self.lens_position_scale.set(self.settings.get('lens_position', 0.66))
         self.lens_position_scale.pack(fill="x", padx=5, pady=5)
 
-        # Flicker Control Dropdown
         flicker_label = ttk.Label(camera_settings_frame, text="Flicker Control:")
         flicker_label.pack(anchor='w', padx=5, pady=5)
 
@@ -333,7 +281,6 @@ class MasterCameraController:
         def flicker_selection_changed(value):
             self.update_controls()
             if value == 'Manual':
-                # Show the flicker period slider
                 self.flicker_period_scale.pack(fill="x", padx=5, pady=5)
             else:
                 self.flicker_period_scale.pack_forget()
@@ -341,13 +288,11 @@ class MasterCameraController:
         self.flicker_menu = ttk.OptionMenu(camera_settings_frame, self.flicker_var, self.flicker_var.get(), *flicker_options, command=flicker_selection_changed)
         self.flicker_menu.pack(anchor='w', padx=5, pady=5)
 
-        # Flicker Period Slider for Manual Mode
         self.flicker_period_scale = tk.Scale(camera_settings_frame, from_=10, to=1000, orient=tk.HORIZONTAL, label="Flicker Period (Hz)", command=lambda x: self.update_controls())
         self.flicker_period_scale.set(self.settings.get('flicker_period', 50))
         if self.settings.get('flicker_control', 'Off') == 'Manual':
             self.flicker_period_scale.pack(fill="x", padx=5, pady=5)
 
-        # White Balance Dropdown
         wb_label = ttk.Label(camera_settings_frame, text="White Balance:")
         wb_label.pack(anchor='w', padx=5, pady=5)
 
@@ -366,11 +311,9 @@ class MasterCameraController:
         self.wb_menu = ttk.OptionMenu(camera_settings_frame, self.wb_var, self.wb_var.get(), *wb_options, command=wb_selection_changed)
         self.wb_menu.pack(anchor='w', padx=5, pady=5)
 
-        # Red Gain Slider
         self.red_gain_scale = tk.Scale(camera_settings_frame, from_=0.0, to=8.0, resolution=0.1, orient=tk.HORIZONTAL, label="Red Gain", command=lambda x: self.update_controls())
         self.red_gain_scale.set(self.settings.get('red_gain', 1.0))
 
-        # Blue Gain Slider
         self.blue_gain_scale = tk.Scale(camera_settings_frame, from_=0.0, to=8.0, resolution=0.1, orient=tk.HORIZONTAL, label="Blue Gain", command=lambda x: self.update_controls())
         self.blue_gain_scale.set(self.settings.get('blue_gain', 1.0))
 
@@ -378,27 +321,21 @@ class MasterCameraController:
             self.red_gain_scale.pack(fill="x", padx=5, pady=5)
             self.blue_gain_scale.pack(fill="x", padx=5, pady=5)
 
-        # Save Settings Button
         save_button = ttk.Button(camera_settings_frame, text="Save Settings", command=self.save_settings)
         save_button.pack(anchor='w', padx=5, pady=5)
 
-        # Metrics Frame above the video
         metrics_frame = ttk.Frame(video_frame)
         metrics_frame.pack(fill="x", padx=5, pady=5)
 
-        # FPS Label
         self.fps_label = ttk.Label(metrics_frame, text="FPS: 0")
         self.fps_label.pack(side="left", padx=5)
 
-        # Bandwidth Label
         self.bandwidth_label = ttk.Label(metrics_frame, text="Bandwidth: 0 MB/s")
         self.bandwidth_label.pack(side="left", padx=5)
 
-        # CPU Usage Label
         self.cpu_label = ttk.Label(metrics_frame, text="CPU Usage: 0%")
         self.cpu_label.pack(side="left", padx=5)
 
-        # Video Label
         self.video_label = ttk.Label(video_frame)
         self.video_label.pack(fill="both", expand=True)
 
@@ -413,7 +350,6 @@ class MasterCameraController:
         self.update_controls()
 
     def update_controls(self):
-        # Gather all settings from the GUI
         settings = {
             'width': int(self.width_entry.get()),
             'height': int(self.height_entry.get()),
@@ -435,20 +371,16 @@ class MasterCameraController:
             'lens_position': float(self.lens_position_scale.get())
         }
 
-        # Adjust settings based on visibility
         if self.flicker_var.get() != 'Manual':
             settings.pop('flicker_period', None)
         if self.wb_var.get() != 'Manual':
             settings.pop('red_gain', None)
             settings.pop('blue_gain', None)
 
-        # Update internal settings
         self.settings.update(settings)
 
-        # Save master settings immediately
         save_master_settings(self.settings)
 
-        # Send settings to all cameras
         threading.Thread(target=self.send_controls_to_all_cameras, args=(settings,), daemon=True).start()
 
     def send_controls_to_all_cameras(self, settings):
@@ -461,7 +393,6 @@ class MasterCameraController:
             t.join()
 
     def save_settings(self):
-        # Save current settings to all remote cameras
         threading.Thread(target=self.save_settings_to_all_cameras, args=(self.settings,), daemon=True).start()
 
     def save_settings_to_all_cameras(self, settings):
@@ -482,28 +413,23 @@ class MasterCameraController:
         self.selected_camera_id.set(cam_id)
         self.selected_camera_ip = self.camera_dict[cam_id]
 
-        # Save selected camera ID to settings
         self.settings['selected_camera_id'] = cam_id
         save_master_settings(self.settings)
 
         self.start_video_stream()
 
     def start_video_stream(self):
-        # Stop existing video thread if any
         if self.video_thread and self.video_thread.is_alive():
             self.stop_event.set()
             self.video_thread.join(timeout=1)
             self.stop_event.clear()
 
-        # Clear the frame queue
         with self.frame_queue.mutex:
             self.frame_queue.queue.clear()
 
-        # Start new video thread
         self.video_thread = threading.Thread(target=self.video_loop, daemon=True)
         self.video_thread.start()
 
-        # Start CPU monitoring thread
         self.cpu_thread = threading.Thread(target=self.cpu_loop, daemon=True)
         self.cpu_thread.start()
 
@@ -518,10 +444,8 @@ class MasterCameraController:
                 ret, frame = cap.read()
                 if not ret:
                     continue
-                # Convert BGR to RGB
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-                # Resize frame based on preview_resolution while maintaining aspect ratio
                 preview_resolution = self.settings.get('preview_resolution', '360p')
                 preview_height = PREVIEW_RESOLUTIONS.get(preview_resolution, 360)
                 original_width = self.settings.get('width', 1280)
@@ -530,26 +454,19 @@ class MasterCameraController:
                 preview_width = int(preview_height * aspect_ratio)
                 frame = cv2.resize(frame, (preview_width, preview_height))
 
-                # Convert to PIL Image
                 img = Image.fromarray(frame)
-                # Convert to ImageTk
                 imgtk = ImageTk.PhotoImage(image=img)
-                # Estimate frame size in bytes
                 frame_size = frame.nbytes
 
-                # Put the frame and its size in the queue
                 if not self.frame_queue.full():
                     self.frame_queue.put((imgtk, frame_size))
 
-                # Update metrics
                 self.frame_count += 1
                 self.total_bytes += frame_size
 
-                # Control the frame rate
                 time.sleep(1 / self.settings.get('frame_rate', 25))
             cap.release()
         except Exception as e:
-            logger = logging.getLogger("video_loop")
             logger.error(f"Video loop error for camera ID {self.selected_camera_id.get()}: {e}")
 
     def cpu_loop(self):
@@ -561,11 +478,9 @@ class MasterCameraController:
                     data = response.json()
                     self.cpu_usage = data.get('cpu_usage', 0)
                 else:
-                    logger = logging.getLogger("cpu_loop")
                     logger.error(f"Failed to get CPU usage for camera ID {self.selected_camera_id.get()}: {response.text}")
                 time.sleep(1)
         except Exception as e:
-            logger = logging.getLogger("cpu_loop")
             logger.error(f"CPU loop error for camera ID {self.selected_camera_id.get()}: {e}")
 
     def update_video(self):
@@ -575,31 +490,24 @@ class MasterCameraController:
                 self.video_label.imgtk = imgtk
                 self.video_label.configure(image=imgtk)
         except Exception as e:
-            logger = logging.getLogger("update_video")
             logger.error(f"UI update error: {e}")
         finally:
-            # Schedule the next frame update
-            self.root.after(15, self.update_video)  # ~66 FPS to match queue consumption
+            self.root.after(15, self.update_video)
 
     def update_metrics(self):
-        # Update FPS and Bandwidth labels every second
         self.fps = self.frame_count
-        self.bandwidth = self.total_bytes / (1024 * 1024)  # MB/s
+        self.bandwidth = self.total_bytes / (1024 * 1024)
 
-        # Update labels
         self.fps_label.config(text=f"FPS: {self.fps}")
         self.bandwidth_label.config(text=f"Bandwidth: {self.bandwidth:.2f} MB/s")
         self.cpu_label.config(text=f"CPU Usage: {self.cpu_usage}%")
 
-        # Reset counters
         self.frame_count = 0
         self.total_bytes = 0
 
-        # Schedule the next metrics update
         self.root.after(1000, self.update_metrics)
 
     def on_closing(self):
-        # Stop the video thread
         self.stop_event.set()
         if self.video_thread and self.video_thread.is_alive():
             self.video_thread.join(timeout=1)

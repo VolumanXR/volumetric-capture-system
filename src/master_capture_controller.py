@@ -1,4 +1,3 @@
-# master_controller.py v11  
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -13,12 +12,12 @@ from config import config as cfg
 from lib import ssh_utils as su
 
 EVENT_LOG = 'event_log_master.txt'
-MASTER_PC_IP = '0.0.0.0'  # Bind to all interfaces
+MASTER_PC_IP = '0.0.0.0'
 MASTER_PC_PORT = 50005
 
 LASTIME = time.time()
 
-NO_RESPONSE_TIMEOUT = 2.0  # If no status in 2 seconds, show "NO RESPONSE"
+NO_RESPONSE_TIMEOUT = 2.0
 
 class State(Enum):
     STILL_RECORDING = 1	
@@ -29,7 +28,7 @@ class DebugWindow(tk.Toplevel):
     def __init__(self, master, on_close_callback=None):
         super().__init__(master)
         self.title('VolumanXR - Debug Window')
-        self.on_close_callback = on_close_callback  # Store the callback
+        self.on_close_callback = on_close_callback
         self.geometry('1790x300')
         self.geometry('+0+700')
 
@@ -37,7 +36,6 @@ class DebugWindow(tk.Toplevel):
             self.iconbitmap(cfg.ICON_PATH)
 
         self.create_widgets()
-        # Override the window's "X" close to ensure we can also do cleanup:
         self.protocol("WM_DELETE_WINDOW", self._handle_close)
 
     def _handle_close(self):
@@ -62,7 +60,6 @@ class DebugWindow(tk.Toplevel):
         resume_messages_button.grid(row=0, column=2, padx=5, pady=5)
 
     def insert_message(self, who, message):
-        # If not paused, allow normal insertion
         self.text.config(state='normal')
         self.text.insert('end', f'{who}: {message}\n')
         self.text.see('end')
@@ -89,8 +86,8 @@ class MainWindow:
         if os.path.exists(cfg.ICON_PATH):
             root.iconbitmap(cfg.ICON_PATH)
 
-        self.cameras = []         # Loaded from camera_list.json
-        self.camera_status = {}   # ip -> { 'state', 'last_seen', 'storage_remaining_mb', 'sessions', ... }
+        self.cameras = []
+        self.camera_status = {}
         self.cameras = load_camera_list(cfg.CAMERA_LIST_FILE)
 
         self.context = zmq.Context()
@@ -99,16 +96,13 @@ class MainWindow:
         self.poller = zmq.Poller()
         self.poller.register(self.router_socket, zmq.POLLIN)
 
-        # identity -> ip mapping
         self.connected_cameras = {}
-        # reverse: ip -> identity mapping
         self.ip_to_identity = {}
 
         pygame.mixer.init()
         self.sound_still_trigger = pygame.mixer.Sound(os.path.join(cfg.RES_FOLDER,'202741__preilly11__eos-shutter-1.wav'))
         self.sound_still_triggered = False
 
-        # TODO: Change sound for video recording
         self.sound_video_preroll = pygame.mixer.Sound(os.path.join(cfg.RES_FOLDER,'short_beep.wav'))
 
         self.sound_video_preroll_triggerd_3 = False
@@ -121,8 +115,6 @@ class MainWindow:
         self.create_widgets()
         self.start_up()
 
-        # Initialize status for all cameras to "NO RESPONSE"
-        # so they appear immediately in the UI
         for cam in self.cameras:
             ip = cam['ip']
             self.camera_status[ip] = {
@@ -132,7 +124,6 @@ class MainWindow:
                 'sessions': []
             }
 
-        # Start the receive thread
         self.running = True
         self.receive_thread = threading.Thread(target=self.receive_loop, daemon=True)
         self.receive_thread.start()
@@ -141,7 +132,6 @@ class MainWindow:
         self.status_check_loop()
 
     def create_widgets(self):
-        
         session_frame = ttk.LabelFrame(self.root, text='Session Control')
         session_frame.pack(fill='x', padx=5, pady=5)
 
@@ -154,10 +144,10 @@ class MainWindow:
         self.bitrate_entry.insert(0, '15')
         self.bitrate_entry.grid(row=1, column=1, padx=5, pady=5)
 
-        start_button = ttk.Button(session_frame, text='Start Recording', command=self.start_recording)
+        start_button = ttk.Button(session_frame, text='Start Recording', command=self.start_video_recording)
         start_button.grid(row=2, column=0, padx=5, pady=5)
 
-        stop_button = ttk.Button(session_frame, text='Stop Recording', command=self.stop_recording)
+        stop_button = ttk.Button(session_frame, text='Stop Recording', command=self.stop_video_recording)
         stop_button.grid(row=2, column=1, padx=5, pady=5)
 
         still_frame = ttk.LabelFrame(self.root, text='Still Image Control')
@@ -167,7 +157,6 @@ class MainWindow:
         self.still_name_entry = ttk.Entry(still_frame)
         self.still_name_entry.grid(row=0, column=1, padx=5, pady=5)
         
-        # add a dropdown menu to select the resolution of the still with the options SD, HD, FullHD, 4K with the default to be FullHD
         ttk.Label(still_frame, text='Resolution:').grid(row=1, column=0, padx=5, pady=5, sticky='w')
         self.resolution_still = tk.StringVar()
         self.resolution_still.set('FullHD')
@@ -177,8 +166,6 @@ class MainWindow:
         capture_button = ttk.Button(still_frame, text='Capture Still Image', command=self.capture_stills)
         capture_button.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky='w')
         
-        
-        # Session Info with a Label displaying the start time when the capture of a session or a still image has been triggered, a countdown with a lable displaying the remaining local time until the start of the captured session or still image and a colored area displaying red if a session is currently recording, yellow if a session is currently being preparing, and green if the system is in standby.
         session_info_frame = ttk.LabelFrame(self.root, text='Session Info')
         session_info_frame.pack(fill='x', padx=5, pady=5)
         
@@ -195,12 +182,10 @@ class MainWindow:
         self.status_label = ttk.Label(session_info_frame, text='N/A')
         self.status_label.grid(row=2, column=1, padx=5, pady=5)
         
-        # colored area rectangle
         self.status_color = tk.Canvas(session_info_frame, width=20, height=20)
         self.status_color.grid(row=2, column=2, padx=5, pady=5)
         self.status_color.create_rectangle(0, 0, 40, 40, fill='green')
         
-
         status_frame = ttk.LabelFrame(self.root, text='Camera Status')
         status_frame.pack(fill='both', expand=True, padx=5, pady=5)
 
@@ -229,7 +214,6 @@ class MainWindow:
             self.debug_mode = True
 
     def _debug_window_closed(self):
-        """Called when the DebugWindow is closed with the X button."""
         self.debug_window = None
         self.debug_mode = False
 
@@ -244,20 +228,16 @@ class MainWindow:
             pass
 
     def periodic_status_check(self):
-        """Periodically checks each camera's 'last_seen' time. If older than
-        NO_RESPONSE_TIMEOUT seconds, set state to 'NO RESPONSE'."""
         current_time = time.time()
         for ip, status in self.camera_status.items():
             last_seen = status.get('last_seen', 0)
             if (current_time - last_seen) > NO_RESPONSE_TIMEOUT:
-                # Overwrite only if we don't already have "NO RESPONSE"
                 if status['state'] != 'NO RESPONSE':
                     self.camera_status[ip]['state'] = 'NO RESPONSE'
 
     def status_check_loop(self):
         self.periodic_status_check()
-        self.root.after(2000, self.status_check_loop)  # Non-blocking update
-
+        self.root.after(2000, self.status_check_loop)
 
     def receive_loop(self):
         lasttime2 = time.perf_counter()
@@ -273,14 +253,11 @@ class MainWindow:
         task = message.get('task')
         ip = message.get('ip', 'Unknown')
 
-        # Always log full incoming messages so they show in the debug window:
         self.log_event(f"Incoming message from {ip}: {message}")
 
-        # Register camera identity -> IP
         if task == 'REGISTER':
             self.connected_cameras[identity] = ip
             self.ip_to_identity[ip] = identity
-            # Set default camera_status
             self.camera_status[ip] = {
                 'state': 'STANDBY',
                 'last_seen': time.time(),
@@ -301,21 +278,14 @@ class MainWindow:
                 'sessions': sessions
             })
 
-        # The Pi acknowledges the start time
         elif task == 'REC_START_ACK':
             ack_time = message.get('start_time', 0)
-            # Compare with what we *thought* we gave it:
-            # If the Pi echoes the same start_time, mark the Pi "PREPARING"
-            # Otherwise: "SYNC ISSUE"
             expected_state = self.camera_status[ip].get('pending_start_time', None)
             if expected_state is not None and abs(expected_state - ack_time) < 0.1:
-                # Times match
                 self.camera_status[ip]['state'] = 'PREPARING'
             else:
                 self.camera_status[ip]['state'] = 'SYNC ISSUE'
-            #self.update_status_tree(ip)
 
-        # The Pi acknowledges the still capture time
         elif task == 'REC_STILL_ACK':
             ack_time = message.get('start_time', 0)
             expected_still_time = self.camera_status[ip].get('pending_still_time', None)
@@ -323,9 +293,7 @@ class MainWindow:
                 self.camera_status[ip]['state'] = 'PREPARING_STILL'
             else:
                 self.camera_status[ip]['state'] = 'SYNC ISSUE'
-            #self.update_status_tree(ip)
 
-        # Keep track of last_seen
         if ip in self.camera_status:
             self.camera_status[ip]['last_seen'] = time.time()
 
@@ -339,12 +307,6 @@ class MainWindow:
         self.connected_label.config(text=f'Connected {connected} / {total}')
         
     def compute_overall_status(self):
-        """
-        Check all cameras' states and decide on an overall status:
-        - 'RECORDING' if any camera is actually recording
-        - 'PREPARING' if not recording yet, but at least one camera is in a 'PREPARING' or 'PREPARING_STILL' state
-        - 'STANDBY' otherwise
-        """
         is_recording = any(
             status.get('state') == 'RECORDING'
             for status in self.camera_status.values()
@@ -362,34 +324,21 @@ class MainWindow:
         return 'STANDBY'
 
     def update_status_color(self, overall_status):
-        """
-        Update the little color box based on the overall system status.
-        """
         color_map = {
             'STANDBY': 'green',
             'PREPARING': 'yellow',
             'RECORDING': 'red'
         }
         color = color_map.get(overall_status, 'gray')
-        self.status_color.delete("all")  # Clear old rectangle
+        self.status_color.delete("all")
         self.status_color.create_rectangle(0, 0, 40, 40, fill=color)
 
     def update_session_info_labels(self):
-        """
-        Update the Session Info section: start time label, countdown, status label, and color box.
-        - If you have a scheduled start time in the future, show how many seconds remain, etc.
-        - If no session is scheduled, show 'N/A'.
-        """
-        # Example assumes you store the most recent start time in self.current_session_start_time
-        # whenever a new recording or still capture is scheduled. (You can set it in `start_recording`
-        # or `capture_stills` if you wish.)
         if hasattr(self, 'current_session_start_time') and self.current_session_start_time and self.current_state != State.STANDBY:
-            # Show the scheduled start time
             self.start_time_label.config(
                 text=time.strftime('%H:%M:%S', time.localtime(self.current_session_start_time))
             )
             
-            # Compute how long until that time
             now = time.time()
             remaining =  now - self.current_session_start_time
             if remaining < 0:
@@ -402,17 +351,13 @@ class MainWindow:
                     if remaining_second > -3 and not self.sound_video_preroll_triggerd_3:
                         self.sound_video_preroll.play()
                         self.sound_video_preroll_triggerd_3 = True
-                        print('Preroll Beep -3')
                     if remaining_second > -2 and not self.sound_video_preroll_triggerd_2:
                         self.sound_video_preroll.play()
                         self.sound_video_preroll_triggerd_2 = True
-                        print('Preroll Beep -2')
                     if remaining_second > -1 and not self.sound_video_preroll_triggerd_1:
                         self.sound_video_preroll.play()
                         self.sound_video_preroll_triggerd_1 = True
-                        print('Preroll Beep -1')
             else:
-
                 if self.current_state == State.STILL_RECORDING:
                     self.countdown_value.config(text="0 s")
                     if not self.sound_still_triggered:
@@ -434,15 +379,11 @@ class MainWindow:
             self.sound_video_preroll_triggerd_2 = False
             self.sound_video_preroll_triggerd_1 = False
         
-        # Determine overall status and update the label & color
         overall_status = self.compute_overall_status()
         self.status_label.config(text=overall_status)
         self.update_status_color(overall_status)
 
-        
-
     def update_status_tree(self, ip):
-        """Update or insert a row in the status tree for the given ip."""
         camera = next((c for c in self.cameras if c['ip'] == ip), None)
         if camera:
             name = camera['name']
@@ -456,7 +397,6 @@ class MainWindow:
         storage = status.get('storage_remaining_mb', 'N/A')
         sessions = ', '.join(status.get('sessions', []))
 
-        # Find if we already have an entry
         found = False
         for item in self.status_tree.get_children():
             values = self.status_tree.item(item, 'values')
@@ -478,69 +418,49 @@ class MainWindow:
         self.root.after(100, self.update_status_tree_loop) 
 
     def send_message(self, ip, message_dict):
-        """Send a ZMQ message to the camera with the given IP."""
         identity = self.ip_to_identity.get(ip)
         if identity:
             self.router_socket.send_multipart([identity, json.dumps(message_dict).encode()])
 
     def broadcast_message(self, message_dict):
-        """Send a ZMQ message to all connected cameras."""
         for ip in self.ip_to_identity:
             self.send_message(ip, message_dict)
 
-    def calculate_checksum(self, file_path):
-        hash_md5 = hashlib.md5()
-        with open(file_path, 'rb') as f:
-            for chunk in iter(lambda: f.read(4096), b''):
-                hash_md5.update(chunk)
-        return hash_md5.hexdigest()
-
     def get_next_multiple_of_5_sec(self, min_gap=5):
-        """
-        Return a float (timestamp) that is the next multiple of 5 seconds
-        from the current minute that is at least min_gap seconds in the future.
-        Example: If it's currently HH:MM:03, the next multiple of 5 is HH:MM:05,
-        but that's only 2 seconds away, so we skip to HH:MM:10 which is 7 seconds away.
-        """
         now = time.time()
         local_now = time.localtime(now)
         current_sec = local_now.tm_sec
 
         next_5 = (current_sec // 5 + 1) * 5
         if next_5 >= 60:
-            # we have to bump to next minute
             next_5 -= 60
-            # compute the base time at the top of the next minute
             base_minute = time.mktime((
                 local_now.tm_year,
                 local_now.tm_mon,
                 local_now.tm_mday,
                 local_now.tm_hour,
                 local_now.tm_min + 1,
-                0,  # second
+                0,
                 local_now.tm_wday,
                 local_now.tm_yday,
                 local_now.tm_isdst
             ))
             candidate_time = base_minute + next_5
         else:
-            # remain in same minute
             base_minute = time.mktime((
                 local_now.tm_year,
                 local_now.tm_mon,
                 local_now.tm_mday,
                 local_now.tm_hour,
                 local_now.tm_min,
-                0,  # second
+                0,
                 local_now.tm_wday,
                 local_now.tm_yday,
                 local_now.tm_isdst
             ))
             candidate_time = base_minute + next_5
 
-        # Check if gap < min_gap
         if (candidate_time - now) < min_gap:
-            # jump another 5 sec
             next_5 += 5
             if next_5 >= 60:
                 next_5 -= 60
@@ -558,7 +478,7 @@ class MainWindow:
             candidate_time = base_minute + next_5
         return candidate_time
 
-    def start_recording(self):
+    def start_video_recording(self):
         self.current_state = State.VIDEO_RECORDING
         session_name = self.session_entry.get()
         bitrate = self.bitrate_entry.get()
@@ -566,14 +486,12 @@ class MainWindow:
             messagebox.showerror('Error', 'Please enter a session name.')
             return
         start_time = self.get_next_multiple_of_5_sec(min_gap=5)
-        self.current_session_start_time = start_time  # <-- store start time for UI
+        self.current_session_start_time = start_time
         self.log_event(f"Scheduling recording at {time.strftime('%H:%M:%S', time.localtime(start_time))}")
 
-        # For each connected camera, store the pending start time
         for ip in self.ip_to_identity:
             self.camera_status[ip]['pending_start_time'] = start_time
 
-        # Instruct each camera to start at that time
         for ip in self.ip_to_identity:
             msg = {
                 'task': 'REC_START',
@@ -583,7 +501,7 @@ class MainWindow:
             }
             self.send_message(ip, msg)
 
-    def stop_recording(self):
+    def stop_video_recording(self):
         for ip in self.ip_to_identity:
             message = {'task': 'REC_STOP'}
             self.send_message(ip, message)
@@ -602,7 +520,7 @@ class MainWindow:
         
         still_resolution = self.resolution_still.get()
         capture_time = self.get_next_multiple_of_5_sec(min_gap=5)
-        self.current_session_start_time = capture_time  # <-- store start time for UI
+        self.current_session_start_time = capture_time
         self.log_event(f"Scheduling still capture at {time.strftime('%H:%M:%S', time.localtime(capture_time))}")
 
         for ip in self.ip_to_identity:
@@ -620,7 +538,7 @@ class MainWindow:
     def start_up(self):
         su.update_dist_time()
         su.start_remote_hosts(self.root, su.RemoteScript.CAPTURECONTROLLER)
-        self.root.deiconify()  # Show the main window after startup tasks
+        self.root.deiconify()
 
     def on_close(self):
         su.stop_remote_hosts(su.RemoteScript.CAPTURECONTROLLER)
@@ -629,15 +547,6 @@ class MainWindow:
     
 
 def load_camera_list(json_path):
-    """
-    Load the list of Raspberry Pis (camera IPs) from the specified JSON file.
-    Expects format like:
-    [
-        {"name": "CAM00", "ip": "10.50.100.100"},
-        {"name": "CAM01", "ip": "10.50.100.101"},
-        ...
-    ]
-    """
     with open(json_path, 'r') as f:
         return json.load(f)
 
@@ -646,6 +555,4 @@ if __name__ == '__main__':
     root.withdraw()
     app = MainWindow(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
-    
-    #app.update_status_tree_all()
     root.mainloop()
