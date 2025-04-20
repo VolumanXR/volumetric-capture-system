@@ -1,11 +1,9 @@
-import csv
 import os
 import argparse
 import subprocess
 
 filepath_hostname = os.path.join("/etc", "hostname")
 filepath_hosts = os.path.join("/etc","hosts")
-
 
 def configure_hostname(cam_number):
     hostname = f"cam{cam_number}"
