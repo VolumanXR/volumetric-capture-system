@@ -66,5 +66,9 @@
     {"name": "CAM64", "ip": "10.50.100.164", "lens_position": 1.4},
     {"name": "CAM65", "ip": "10.50.100.165", "lens_position": 1.2},
     {"name": "CAM66", "ip": "10.50.100.166", "lens_position": 1.2},
-    {"name": "CAM67", "ip": "10.50.100.167", "lens_position": 1.4}
+    {"name": "CAM67", "ip": "10.50.100.167", "lens_position": 1.4},
+    {"name": "CAM68", "ip": "10.50.100.168", "lens_position": 0.0000000000001},
+    {"name": "CAM69", "ip": "10.50.100.169", "lens_position": 0.0000000000001},
+    {"name": "CAM70", "ip": "10.50.100.170", "lens_position": 0.0000000000001},
+    {"name": "CAM71", "ip": "10.50.100.171", "lens_position": 0.0000000000001}
 ]
