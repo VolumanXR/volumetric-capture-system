@@ -10,7 +10,7 @@ import threading
 import queue
 import time
 import logging
-from config import config as cfg
+from lib import config as cfg
 from lib import ssh_utils as su
 
 cpu_cores = os.cpu_count()

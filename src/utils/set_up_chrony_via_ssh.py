@@ -9,7 +9,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
-from config import config as cfg
+from lib import config as cfg
 from lib.ssh_utils import ssh_command
 
 CHRONY_CONF_CONTENT = """# Welcome to the chrony configuration file. See chrony.conf(5) for more

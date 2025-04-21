@@ -8,7 +8,7 @@ import hashlib
 import zmq
 import pygame
 from enum import Enum
-from config import config as cfg
+from lib import config as cfg
 from lib import ssh_utils as su
 
 EVENT_LOG = 'event_log_master.txt'

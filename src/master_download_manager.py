@@ -12,7 +12,7 @@ import subprocess
 import shutil
 import sys
 import zmq
-from config import config as cfg
+from lib import config as cfg
 from lib import ssh_utils as su
 
 OFFLINE_MODE = False

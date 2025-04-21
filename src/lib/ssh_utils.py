@@ -22,7 +22,7 @@ else:
 if project_root not in sys.path:
     sys.path.append(project_root)
 
-from config import config as cfg
+from lib import config as cfg
 
 class RemoteScript(Enum):
     CAMERACONTROLLER = 'remote_camera_controller.py'
