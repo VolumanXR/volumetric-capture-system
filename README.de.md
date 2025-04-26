@@ -22,7 +22,7 @@ volumetric-capture-system/
 ├── readme.md
 ├── requirements.txt
 ├── cad/                           # 3D-druckbare Kamerahalterungen
-├── bin/                           # Kompilierte GUI-Binaries für Windows & macOS
+├── dist/                          # Gezippte und kompilierte Master Controls
 ├── src/
 │   ├── master_camera_controller.py
 │   ├── master_capture_controller.py
@@ -102,6 +102,9 @@ Diese Tools befinden sich in `src/utils/` und unterstützen Einrichtung und Fern
 
 - `master_set_cam_number.py`  
   Vergibt während der Einrichtung von der Master-Seite aus Kameranummern und Hostnamen.
+
+- `build.py`
+  Vorkonfiguriertes Build-Skript für alle drei Hauptprogramme
 
 ---
 

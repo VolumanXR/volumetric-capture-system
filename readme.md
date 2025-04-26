@@ -22,7 +22,7 @@ volumetric-capture-system/
 ├── readme.md
 ├── requirements.txt
 ├── cad/                           # 3D-printable camera holder models
-├── bin/                           # Prebuilt GUI binaries for Windows & macOS
+├── dist/                          # Zipped and packaged master controls
 ├── src/
 │   ├── master_camera_controller.py
 │   ├── master_capture_controller.py
@@ -40,7 +40,7 @@ volumetric-capture-system/
 
 - **Camera Rig**: Custom-built frame using aluminum extrusion profiles (not included in repo).
 - **Cameras**: Raspberry Pi 4B (1GB) + Camera Module V3
-- **Devices**: Up to 70 Raspberry Pi units
+- **Devices**: approx. 70 Raspberry Pi units
 - **Mounts**: 3D-printable camera holders (provided in `cad/`)
 - **Trigger**: Software-synchronized using NTP + ZeroMQ
 
@@ -105,6 +105,9 @@ Located in `src/utils/`, these tools support discovery, setup, and remote contro
 
 - `master_set_cam_number.py`  
   Assigns camera numbers and hostnames from the master side during setup.
+
+- `build.py`
+  Preconfigured build script for all three main programs
 
 ---
 
