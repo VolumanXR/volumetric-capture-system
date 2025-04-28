@@ -1,127 +1,108 @@
 import PyInstaller.__main__
 import os
 import shutil
+import sys
+import platform
 from pathlib import Path
 import zipfile
-import platform
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_DIR = SCRIPT_DIR.parent.parent.resolve()
-scripts = ['master_camera_controller.py', 'master_capture_controller.py', 'master_download_manager.py']
-friendly_names = {
-    'master_camera_controller': 'Camera Controller',
-    'master_capture_controller': 'Capture Controller',
-    'master_download_manager': 'Download Manager',
+# map source scripts to their user-friendly names
+scripts = {
+    'master_camera_controller.py':    'Camera Controller',
+    'master_capture_controller.py':   'Capture Controller',
+    'master_download_manager.py':     'Download Manager',
 }
 
-def build_scripts_windows():
-    for script in scripts:
-        basename = Path(script).stem
+# base name for the final program folder
+PROGRAM_NAME = 'VolumetricCaptureSystem Controls'
+
+def build_scripts():
+    is_windows = sys.platform == 'win32'
+    add_data_sep = ';' if is_windows else ':'
+    for src, nice_name in scripts.items():
+        base = Path(src).stem  # e.g. "master_camera_controller"
+        # pick correct icon extension
+        icon_ext = 'ico' if is_windows else 'icns'
+        icon_path = PROJECT_DIR / f"src/res/{base}.{icon_ext}"
+
         PyInstaller.__main__.run([
             '--noconfirm',
             '--onedir',
-            '--name', basename,
-            '--icon', os.path.join(PROJECT_DIR, f"src/res/{basename}.ico"),
-            '--add-data', os.path.join(PROJECT_DIR, "src/config") + ";config",
-            '--add-data', os.path.join(PROJECT_DIR, "src/res") + ";res",
-            os.path.join(PROJECT_DIR, 'src', script),
-            '--distpath', os.path.join(PROJECT_DIR, 'dist'),
-            '--workpath', os.path.join(PROJECT_DIR, 'build'),
-            '--specpath', os.path.join(PROJECT_DIR, 'build'),
+            '--name', nice_name,
+            '--icon', str(icon_path),
+            # share config and res into a folder named "config" and "res" inside _core
+            '--add-data', str(PROJECT_DIR / "src/config") + f"{add_data_sep}config",
+            '--add-data', str(PROJECT_DIR / "src/res")    + f"{add_data_sep}res",
+            str(PROJECT_DIR / 'src' / src),
+            '--distpath', str(PROJECT_DIR / 'dist' ),
+            '--workpath', str(PROJECT_DIR / 'build'),
+            '--specpath', str(PROJECT_DIR / 'build'),
             '--contents-directory', '_core',
-            '--noconsole',
+            '--noconsole'
         ])
 
-def build_scripts_mac():
-    for script in scripts:
-        basename = Path(script).stem
-        name = friendly_names.get(basename, basename)
-        icon_path = os.path.join(PROJECT_DIR, f"src/res/{basename}.icns")
-        PyInstaller.__main__.run([
-            '--noconfirm',
-            '--onedir',
-            '--name', name,
-            '--icon', icon_path,
-            '--add-data', os.path.join(PROJECT_DIR, "src/config") + ":config",
-            '--add-data', os.path.join(PROJECT_DIR, "src/res") + ":res",
-            os.path.join(PROJECT_DIR, 'src', script),
-            '--distpath', os.path.join(PROJECT_DIR, 'dist'),
-            '--workpath', os.path.join(PROJECT_DIR, 'build'),
-            '--specpath', os.path.join(PROJECT_DIR, 'build'),
-            '--windowed',
-        ])
+def clean_up():
+    print("Cleaning up...")
+    dist_root = PROJECT_DIR / 'dist'
+    complete_dir = dist_root / PROGRAM_NAME
 
-def zip_folder(folder_path, output_path):
+    # prepare clean folder
+    if complete_dir.exists():
+        shutil.rmtree(complete_dir)
+    complete_dir.mkdir()
+
+    # add the Windows .bat to open config (will harmlessly sit in mac builds)
+    create_bat(complete_dir)
+
+    # copy each built app next to the shared _core folder
+    for src, nice_name in scripts.items():
+        src_folder = dist_root / nice_name
+        copy_new_files(str(src_folder), str(complete_dir))
+
+    # if on Windows, zip up with a platform-tagged name and then remove the temp folder
+    if sys.platform == 'win32':
+        zip_name = f"{PROGRAM_NAME} Windows.zip"
+        zip_path = dist_root / zip_name
+        zip_folder(str(complete_dir), str(zip_path))
+        shutil.rmtree(complete_dir)
+
+def zip_folder(folder_path: str, output_path: str):
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(folder_path):
             for file in files:
                 file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, start=folder_path)
+                arcname  = os.path.relpath(file_path, start=folder_path)
                 zipf.write(file_path, arcname)
 
 def copy_new_files(source_folder: str, destination_folder: str) -> None:
     for root, dirs, files in os.walk(source_folder):
-        relative_path = os.path.relpath(root, source_folder)
-        destination_path = os.path.join(destination_folder, relative_path)
-        os.makedirs(destination_path, exist_ok=True)
+        rel = os.path.relpath(root, source_folder)
+        dest_path = os.path.join(destination_folder, rel) if rel != '.' else destination_folder
+
+        if not os.path.exists(dest_path):
+            os.makedirs(dest_path)
+
         for file in files:
             src_file = os.path.join(root, file)
-            dest_file = os.path.join(destination_path, file)
-            if not os.path.exists(dest_file):
-                shutil.copy2(src_file, dest_file)
+            dst_file = os.path.join(dest_path, file)
+            if not os.path.exists(dst_file):
+                shutil.copy2(src_file, dst_file)
 
-def create_bat(dist_folder):
+def create_bat(dist_folder: Path):
+    """
+    Creates a 'Open Config Folder.bat' file next to the packaged app(s).
+    """
     bat_content = """@echo off
 start "" "%~dp0_core\\config"
 """
-    bat_path = os.path.join(dist_folder, "Open Config.bat")
-    with open(bat_path, 'w', encoding='utf-8') as f:
-        f.write(bat_content)
-
-def create_command(dist_folder):
-    cmd_content = """#!/bin/bash
-open "$(dirname "$0")/_core/config"
-"""
-    cmd_path = os.path.join(dist_folder, "Open Config.command")
-    with open(cmd_path, 'w', encoding='utf-8') as f:
-        f.write(cmd_content)
-    os.chmod(cmd_path, 0o755)
-
-def clean_up(dist_folder, zip_name):
-    print("Cleaning up...")
-    if os.path.exists(dist_folder):
-        shutil.rmtree(dist_folder)
-    os.makedirs(dist_folder)
-    system = platform.system()
-    if system == 'Windows':
-        create_bat(dist_folder)
-    elif system == 'Darwin':
-        create_command(dist_folder)
-    for script in scripts:
-        basename = Path(script).stem
-        if system == 'Windows':
-            source = os.path.join(PROJECT_DIR, 'dist', basename)
-        else:  # macOS
-            source = os.path.join(PROJECT_DIR, 'dist', friendly_names.get(basename, basename) + '.app')
-        copy_new_files(source, dist_folder)
-    zip_folder(dist_folder, os.path.join(PROJECT_DIR, 'dist', zip_name))
-    shutil.rmtree(dist_folder)
+    bat_path = dist_folder / "Open Config.bat"
+    bat_path.write_text(bat_content, encoding='utf-8')
 
 def main():
-    system = platform.system()
-    if system == 'Windows':
-        build_scripts_windows()
-        zip_name = 'VolumetricCaptureSystem Controls.zip'
-    elif system == 'Darwin':
-        build_scripts_mac()
-        arch = platform.machine()
-        arch_name = 'Apple Silicon' if arch == 'arm64' else 'Intel'
-        zip_name = f'VolumetricCaptureSystem Controls macOS {arch_name}.zip'
-    else:
-        print(f"Unsupported platform: {system}")
-        return
-    dist_folder = os.path.join(PROJECT_DIR, 'dist', 'VolumetricCaptureSystem Controls')
-    clean_up(dist_folder, zip_name)
+    build_scripts()
+    clean_up()
 
 if __name__ == "__main__":
     main()
