@@ -23,6 +23,7 @@ volumetric-capture-system/
 ├── requirements.txt
 ├── cad/                           # 3D-printable camera holder models
 ├── dist/                          # Zipped and packaged master controls
+├── img/                           # Link to external archive containing preformatted Raspberry Pi Images
 ├── src/
 │   ├── master_camera_controller.py
 │   ├── master_capture_controller.py

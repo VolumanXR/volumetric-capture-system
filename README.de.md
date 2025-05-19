@@ -23,6 +23,7 @@ volumetric-capture-system/
 ├── requirements.txt
 ├── cad/                           # 3D-druckbare Kamerahalterungen
 ├── dist/                          # Gezippte und kompilierte Master Controls
+├── img/                           # Link zu externem Archiv mit vorkonfigurierten Raspberry Pi Images
 ├── src/
 │   ├── master_camera_controller.py
 │   ├── master_capture_controller.py
@@ -161,4 +162,4 @@ Bitte beachten Sie die `LICENSE`-Datei im Hauptrepository für die vollständige
 
 ---
 
-> ℹ️ Den vollständigen Projektkontext finden Sie im [VolumanXR README](../README.md).
+> ℹ️ Den vollständigen Projektkontext finden Sie im [VolumanXR README](../README.de.md).
