@@ -611,7 +611,7 @@ class SessionDownloaderApp:
             shutil.rmtree(temp_folder)
         os.makedirs(temp_folder)
 
-        output_pattern = os.path.join(temp_folder, "frame_%06d.jpg")
+        output_pattern = os.path.join(temp_folder, "%06d.png")
         ffmpeg_cmd = [
             "ffmpeg",
             "-i", video_path,
@@ -626,7 +626,7 @@ class SessionDownloaderApp:
 
         extracted_frames = sorted(
             f for f in os.listdir(temp_folder)
-            if f.lower().endswith(".jpg") and f.startswith("frame_")
+            if f.lower().endswith(".png")
         )
         extracted_count = len(extracted_frames)
 
@@ -638,16 +638,16 @@ class SessionDownloaderApp:
 
         for i in range(move_count):
             json_frame_index = valid_frames[i]
-            extracted_name = f"frame_{(i+1):06d}.jpg"
+            extracted_name = f"{(i+1):06d}.png"
             extracted_path = os.path.join(temp_folder, extracted_name)
             if not os.path.isfile(extracted_path):
                 continue
 
-            frame_folder_name = f"Frame{json_frame_index:0{global_digits}d}"
+            frame_folder_name = f"{json_frame_index:0{global_digits}d}"
             frame_folder_path = os.path.join(frames_folder, frame_folder_name)
             os.makedirs(frame_folder_path, exist_ok=True)
 
-            cam_name = f"cam{camera_id:02d}.jpg"
+            cam_name = f"{camera_id:02d}.png"
             final_path = os.path.join(frame_folder_path, cam_name)
 
             shutil.move(extracted_path, final_path)
