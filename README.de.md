@@ -1,7 +1,7 @@
-[EN](../volumetric-capture-system/README.md) | **DE** 
+[EN](README.md) | **DE** 
 
 <p align="center">
-  <img src="../docs/assets/Logo_VCS.png" alt="Volumetric Capture System Logo" width="400"/>
+  <img src="docs/assets/Logo_VCS.png" alt="Volumetric Capture System Logo" width="400"/>
 </p>
 
 # VolumanXR – Volumetric Capture System

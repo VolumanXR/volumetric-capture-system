@@ -1,7 +1,9 @@
-pygame
-pyzmq
-paramiko
-requests
+Flask==3.1.2
+paramiko==4.0.0
+Pillow==12.1.0
+psutil==7.2.1
+pygame==2.6.1
+PyInstaller==6.18.0
+pyzmq==27.1.0
+Requests==2.32.5
 opencv-python
-pillow
-numpy
