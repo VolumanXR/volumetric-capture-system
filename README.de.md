@@ -1,4 +1,4 @@
-[EN](README.md) | **DE** 
+[EN](/readme.md) | **DE** 
 
 <p align="center">
   <img src="https://github.com/VolumanXR/.github/blob/main/docs/assets/Logo_VCS.png" alt="Volumetric Capture System Logo" width="400"/>
