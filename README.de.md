@@ -1,7 +1,7 @@
 [EN](README.md) | **DE** 
 
 <p align="center">
-  <img src="docs/assets/Logo_VCS.png" alt="Volumetric Capture System Logo" width="400"/>
+  <img src="https://github.com/VolumanXR/.github/blob/main/docs/assets/Logo_VCS.png" alt="Volumetric Capture System Logo" width="400"/>
 </p>
 
 # VolumanXR – Volumetric Capture System
@@ -14,6 +14,9 @@ Es beinhaltet:
 - GUI-Tools zur Kalibrierung, Aufnahme und zum Download
 - Automatisierungsskripte und Konfigurationsverwaltung
 
+> **Wartungshinweis**\
+>Dieses Repository dient primär als Dokumentations- und Referenzplattform für Volumetric Capture System des VolumanXR-Forschungsprojekt. Weiterentwicklungen erfolgen nur gelegentlich und nicht kontinuierlich. Repositories können sporadisch aktualisiert werden, eine regelmäßige Pflege oder langfristiger Support ist nicht vorgesehen.
+
 ---
 
 ## 📦 Projektstruktur
@@ -22,8 +25,6 @@ volumetric-capture-system/
 ├── readme.md
 ├── requirements.txt
 ├── cad/                           # 3D-druckbare Kamerahalterungen
-├── dist/                          # Gezippte und kompilierte Master Controls
-├── img/                           # Link zu externem Archiv mit vorkonfigurierten Raspberry Pi Images
 ├── src/
 │   ├── master_camera_controller.py
 │   ├── master_capture_controller.py
@@ -147,19 +148,32 @@ Empfohlene Umgebung:
 
 ---
 
-## 👥 Teambeitragende
+## 👥 Contributions
+### Code Contributors
 
-- **Kai Altwicker** — Rig-Design, Synchronisation, Architektur der Hauptsteuerung  
-- **Dennis Luca Amuser** — Design der Remote-Agenten, Firmware-Programmierung, Netzwerk & Automatisierung  
-- **Unterstützung** — Makerspace TH Köln, Zentralwerkstatt Elektrotechnik, Prof. Dr.-Ing. Fuhrmann
+- **Kai Altwicker** — Rig-Design, Synchronisation, Architektur der Hauptsteuerung
+- **Dennis Luca Amuser** — Design der Remote-Agenten, Firmware-Programmierung, Netzwerk & Automatisierung
+
+### Veröffentlichungen
+- **IEEE VR Poster (2026)**\
+Hauptautoren: Steffen Stein, Dennis Luca Amuser, Kai Altwicker\
+Unterstützender Autor: David Mertens
+
+### Unterstützung
+- Prof. Dr.-Ing. Fuhrmann
+- GatewayTHK
+- Makerspace TH Köln 
+- Zentralwerkstatt Elektrotechnik, 
 
 ---
 
 ## 📄 Lizenz
 
-Dieses Repository ist Teil des VolumanXR-Projekts.  
-Bitte beachten Sie die `LICENSE`-Datei im Hauptrepository für die vollständigen Lizenzbedingungen.
 
+Bitte beachten Sie die [`LICENSE`](/LICENSE)-Datei für die vollständigen Lizenzbedingungen.
+
+Hinweise zu Lizenzen von Drittanbietern finden Sie unter [`THIRD_PARTY_NOTICES.md`](/NOTICE-THIRD-PARTY.md).
 ---
 
-> ℹ️ Den vollständigen Projektkontext finden Sie im [VolumanXR README](../README.de.md).
+> ℹ️ Dieses Repository ist Teil des VolumanXR-Projekts.  \
+> Den vollständigen Projektkontext finden Sie auf der [VolumanXR](https://github.com/VolumanXR)-Seite.

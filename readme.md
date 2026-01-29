@@ -1,7 +1,7 @@
 **EN** | [DE](README.de.md)
 
 <p align="center">
-  <img src="docs/assets/Logo_VCS.png" alt="Volumetric Capture System Logo" width="400"/>
+  <img src="https://github.com/VolumanXR/.github/blob/main/docs/assets/Logo_VCS.png" alt="Volumetric Capture System Logo" width="400"/>
 </p>
 
 # VolumanXR – Volumetric Capture System
@@ -14,6 +14,9 @@ It includes:
 - GUI tools for capture, calibration, and download
 - Automation scripts and config management
 
+> **Maintenance Notice**\
+>This repository primarily serves as a documentation and reference space for the Volumetric Capture System of the VolumanXR research project. Further development occurs on an occasional basis and is not continuous. Repositories may receive updates from time to time, but regular maintenance and long-term support should not be assumed.
+
 ---
 
 ## 📦 Repository Structure
@@ -22,8 +25,6 @@ volumetric-capture-system/
 ├── readme.md
 ├── requirements.txt
 ├── cad/                           # 3D-printable camera holder models
-├── dist/                          # Zipped and packaged master controls
-├── img/                           # Link to external archive containing preformatted Raspberry Pi Images
 ├── src/
 │   ├── master_camera_controller.py
 │   ├── master_capture_controller.py
@@ -151,22 +152,36 @@ Recommended environment:
 
 ---
 
-## 👥 Team Contributors
+## 👥 Contributions
+### Code Contributors
 
 - **Kai Altwicker** — Rig design, synchronization, master control architecture  
-- **Dennis Luca Amuser** — Remote agent design, firmware imaging, network & automation  
-- **Support** — Makerspace TH Köln, Zentralwerkstatt Elektrotechnik, Prof. Dr.-Ing. Fuhrmann
+- **Dennis Luca Amuser** — Remote agent design, firmware imaging, network & automation
+
+### Publications
+- **IEEE VR Poster (2026)**\
+Main authors: Steffen Stein, Dennis Luca Amuser, Kai Altwicker\
+Supporting author: David Mertens
+
+### Acknowledgements
+- Prof. Dr.-Ing. Fuhrmann
+- GatewayTHK
+- Makerspace TH Köln 
+- Zentralwerkstatt Elektrotechnik, 
 
 ---
 
 ## 📄 License
+ 
+Please refer to the [`LICENSE`](/LICENSE) file for full terms.
 
-This repository is part of the VolumanXR project.  
-Please refer to the root repository’s `LICENSE` file for full terms.
+Third-party license notices are provided in [`THIRD_PARTY_NOTICES.md`](/NOTICE-THIRD-PARTY.md).
+
 
 ---
 
-> ℹ️ For full project context, visit the [VolumanXR README](../README.md).
+> ℹ️ This repository is part of the VolumanXR project. \
+> For full project context, visit the [VolumanXR](https://github.com/VolumanXR) page.
 
 
 
