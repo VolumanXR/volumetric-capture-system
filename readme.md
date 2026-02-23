@@ -39,6 +39,9 @@ volumetric-capture-system/
 ---
 
 ## 🔧 Hardware Context
+<p align="center">
+  <img src="https://github.com/VolumanXR/.github/blob/main/docs/assets/VCS_teaser_image.png" alt="Volumetric Capture System Overview Image" width="100%"/>
+</p>
 
 - **Camera Rig**: Custom-built frame using aluminum extrusion profiles (not included in repo).
 - **Cameras**: Raspberry Pi 4B (1GB) + Camera Module V3

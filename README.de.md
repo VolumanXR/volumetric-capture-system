@@ -36,6 +36,9 @@ volumetric-capture-system/
 │   └── utils/                     # Hilfsskripte für Setup und Steuerung
 ```
 ## 🔧 Hardware-Kontext
+<p align="center">
+  <img src="https://github.com/VolumanXR/.github/blob/main/docs/assets/VCS_teaser_image.png" alt="Volumetric Capture System Overview Image" width="100%"/>
+</p>
 
 - **Kamerarig**: Eigenbau-Rahmen aus Aluminiumprofilen (nicht im Repository enthalten)
 - **Kameras**: Raspberry Pi 4B (1GB) + Camera Module V3
