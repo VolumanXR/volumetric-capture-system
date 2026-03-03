@@ -158,9 +158,18 @@ Empfohlene Umgebung:
 - **Dennis Luca Amuser** — Design der Remote-Agenten, Firmware-Programmierung, Netzwerk & Automatisierung
 
 ### Veröffentlichungen
-- **IEEE VR Poster (2026)**\
-Hauptautoren: Steffen Stein, Dennis Luca Amuser, Kai Altwicker\
-Unterstützender Autor: David Mertens
+- **[IEEE VR26 Poster](https://doi.org/10.13140/RG.2.2.16244.62083) (Preprint)**
+```bibtex
+@misc{stein2026scalable,
+  author       = {Steffen-Sascha Stein and Dennis Amuser and Kai Altwicker and  David Mertens and Matthias Bullert and Alisa Ruge and David Martin Karg and Kristoffer Waldow and Arnulph Fuhrmann},
+  title        = {A Scalable and Cost-Effective Multi-View Capture System for Photorealistic Dynamic Human Reconstruction},
+  year         = {2026},
+  month        = {February},
+  note         = {Preprint. To appear in IEEE VR 2026 Poster Track},
+  doi          = {10.13140/RG.2.2.16244.62083},
+  url          = {https://doi.org/10.13140/RG.2.2.16244.62083}
+}
+```
 
 ### Unterstützung
 - Prof. Dr.-Ing. Fuhrmann
