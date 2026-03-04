@@ -158,7 +158,8 @@ Empfohlene Umgebung:
 - **Dennis Luca Amuser** — Design der Remote-Agenten, Firmware-Programmierung, Netzwerk & Automatisierung
 
 ### Veröffentlichungen
-- **[IEEE VR26 Poster](https://doi.org/10.13140/RG.2.2.16244.62083) (Preprint)**
+- **[IEEE VR26 Poster](https://doi.org/10.13140/RG.2.2.16244.62083) (Preprint)**\
+[Steffen Stein](https://www.linkedin.com/in/steffen-sascha-stein/), [Dennis Luca Amuser](https://github.com/dooonnis), [Kai Altwicker](https://github.com/tallAldi), David Mertens, Matthias Bullert Alisa Rüge, David Martin Karf, Kristoffer Waldow, [Arnulph Fuhrmann](https://www.linkedin.com/in/arnulph-fuhrmann-291420279/)
 ```bibtex
 @misc{stein2026scalable,
   author       = {Steffen-Sascha Stein and Dennis Amuser and Kai Altwicker and  David Mertens and Matthias Bullert and Alisa Ruge and David Martin Karg and Kristoffer Waldow and Arnulph Fuhrmann},
