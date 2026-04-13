@@ -10,6 +10,7 @@ This module is part of the **VolumanXR** project and implements a complete **syn
 <p align="center">
   <img src="https://github.com/VolumanXR/.github/blob/main/docs/assets/VCR_Scanresult.gif" alt="Animated results of a scan" width="100%"/>
 </p>
+
 It includes:
 - A scalable and customizable camera rig
 - A decentralized control system with synchronized recording
