@@ -8,6 +8,10 @@
 
 Dieses Modul ist Teil des **VolumanXR** Projekts und implementiert ein vollständiges **synchronisiertes volumetrisches Videoaufnahmesystem** auf Basis von Raspberry Pis mit der Camera Module V3. Es ermöglicht die Echtzeitaufnahme mit mehreren Kameras für 4D Gaussian Splatting.
 
+<p align="center">
+  <img src="https://github.com/VolumanXR/.github/blob/main/docs/assets/VCR_Scanresult.gif" alt="Animated results of a scan" width="100%"/>
+</p>
+
 Es beinhaltet:
 - Ein skalierbares und individualisierbares Kamerarig
 - Ein dezentrales Steuersystem mit synchroner Aufnahme
