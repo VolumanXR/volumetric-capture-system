@@ -165,18 +165,19 @@ Recommended environment:
 - **Dennis Amuser** — Remote agent design, firmware imaging, network & automation
 
 ### Publications
-- **[IEEE VR26 Poster](https://doi.org/10.13140/RG.2.2.16244.62083) (Preprint)**\
+- **[IEEE VR26](https://doi.org/10.1109/VRW70859.2026.00274)**\
 [Steffen Stein](https://www.linkedin.com/in/steffen-sascha-stein/), [Dennis Amuser](https://github.com/dooonnis), [Kai Altwicker](https://github.com/tallAldi), David Mertens, Matthias Bullert Alisa Rüge, David Martin Karf, Kristoffer Waldow, [Arnulph Fuhrmann](https://www.linkedin.com/in/arnulph-fuhrmann-291420279/)
 ```bibtex
-@misc{stein2026scalable,
-  author       = {Steffen-Sascha Stein and Dennis Amuser and Kai Altwicker and  David Mertens and Matthias Bullert and Alisa Ruge and David Martin Karg and Kristoffer Waldow and Arnulph Fuhrmann},
-  title        = {A Scalable and Cost-Effective Multi-View Capture System for Photorealistic Dynamic Human Reconstruction},
-  year         = {2026},
-  month        = {February},
-  note         = {Preprint. To appear in IEEE VR 2026 Poster Track},
-  doi          = {10.13140/RG.2.2.16244.62083},
-  url          = {https://doi.org/10.13140/RG.2.2.16244.62083}
-}
+@INPROCEEDINGS{11489551,
+  author={Stein, Steffen-Sascha and Amuser, Dennis and Altwicker, Kai and Mertens, David and Bullert, Matthias and Ruge, Alisa and Karg, David Martin and Waldow, Kristoffer and Fuhrmann, Arnulph},
+  booktitle={2026 IEEE Conference on Virtual Reality and 3D User Interfaces Abstracts and Workshops (VRW)}, 
+  title={A Scalable and Cost-Effective Multi-View Capture System for Photorealistic Dynamic Human Reconstruction}, 
+  year={2026},
+  volume={},
+  number={},
+  pages={1199-1200},
+  keywords={Broadcasting;Broadcast technology;Anisotropic;Filters;Graphical user interfaces;Avatars;Protocols;Videos;HTTP;Video equipment;Avatars;Capture System;Virtual Humans;Radiance Fields},
+  doi={10.1109/VRW70859.2026.00274}}
 ```
 
 ### Acknowledgements
